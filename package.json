@@ -1,7 +1,7 @@
 {
   "name": "electron-audiostation",
   "version": "1.0.0",
-  "description": "A Synology client AudioStation Player run on macOS and Windows.",
+  "description": "A Synology AudioStation client run on macOS and Windows.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
