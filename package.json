@@ -31,19 +31,19 @@
       "output": "release/"
     },
     "win": {
-      "icon": "icon.png",
+      "icon": "assets/icon.png",
       "target": [
         "portable"
       ]
     },
     "mac": {
-      "icon": "icon.png",
+      "icon": "assets/icon.png",
       "target": [
         "dmg"
       ]
     },
     "linux": {
-      "icon": "icon.png",
+      "icon": "assets/icon.png",
       "target": [
         "rpm"
       ]
