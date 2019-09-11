@@ -1,6 +1,10 @@
+<img src="assets/icon.png" alt="logo" height="256" align="right" />
+
 # Electron AudioStation
 
 A Synology AudioStation client run on macOS and Windows. Built with Electron by milkfish. 
+
+![preview](https://user-images.githubusercontent.com/6388562/64693419-d34c0380-d4c9-11e9-90e8-1fdc0d778c36.png)
 
 # Feature
 - shortcut: `Media Play/Pause`, `Media Next Track`, `Media Previous Track`, `Media Stop`
