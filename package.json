@@ -33,7 +33,8 @@
     "win": {
       "icon": "assets/icon.png",
       "target": [
-        "portable"
+        "portable",
+        "nsis"
       ]
     },
     "mac": {
