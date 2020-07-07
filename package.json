@@ -20,7 +20,7 @@
     "url": "git+https://github.com/sdjnmxd/electron-audiostation.git"
   },
   "devDependencies": {
-    "electron": "^6.0.8",
+    "electron": "^9.1.0",
     "electron-builder": "^21.2.0"
   },
   "build": {
