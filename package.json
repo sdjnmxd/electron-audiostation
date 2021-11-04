@@ -1,6 +1,6 @@
 {
   "name": "electron-audiostation",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A Synology AudioStation client run on macOS and Windows.",
   "main": "main.js",
   "scripts": {
@@ -20,8 +20,8 @@
     "url": "git+https://github.com/sdjnmxd/electron-audiostation.git"
   },
   "devDependencies": {
-    "electron": "^9.1.0",
-    "electron-builder": "^21.2.0"
+    "electron": "^15.3.0",
+    "electron-builder": "^22.14.5"
   },
   "build": {
     "appId": "moe.mxd.Electron-AudioStation",
@@ -49,5 +49,9 @@
         "rpm"
       ]
     }
+  },
+  "dependencies": {
+    "electron-store": "^8.0.1",
+    "electron-prompt": "^1.7.0"
   }
 }
