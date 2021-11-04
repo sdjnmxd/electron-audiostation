@@ -7,32 +7,16 @@ A Synology AudioStation client run on macOS and Windows. Built with Electron by 
 ![preview](https://user-images.githubusercontent.com/6388562/64693419-d34c0380-d4c9-11e9-90e8-1fdc0d778c36.png)
 
 # Feature
-- shortcut: `Media Play/Pause`, `Media Next Track`, `Media Previous Track`, `Media Stop`
+- shortcut: `Media Play/Pause`, `Media Next Track`, `Media Previous Track`, `Media Stop`, `CommandOrControl+E: Edit the configuration`
 
 **Important**: The following accelerators will not be registered successfully on macOS 10.14 Mojave unless the app has been authorized as a [trusted accessibility client](https://developer.apple.com/library/archive/documentation/Accessibility/Conceptual/AccessibilityMacOSX/OSXAXTestingApps.html)
 
 # How To Use
-##### you'll need Git & Node.js (which comes with npm) installed on your computer
-```
-# Clone this repository
-git clone https://github.com/sdjnmxd/electron-audiostation.git
-
-# Go into the repository
-cd electron-audiostation
-
-# Change load url in main.js
-mainWindow.loadURL('')  // you audio stations location
-
-# Install dependencies and run the app
-npm install && npm start
-```
-
-##### To pack into an app, simply type one of these:
-```
-npm run build:mac
-npm run build:windows
-npm run build:linux
-```
+1. download installer from [release](https://github.com/sdjnmxd/electron-audiostation/releases)
+2. install
+3. run
+4. fill in the url as prompted
+5. enjoy it !
 
 ### License GPL-3.0
 
