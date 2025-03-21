@@ -1,13 +1,14 @@
 {
   "name": "electron-audiostation",
-  "version": "2.0.0",
-  "description": "A Synology AudioStation client run on macOS and Windows.",
-  "main": "main.js",
+  "version": "3.0.0",
+  "description": "A modern Synology AudioStation client for macOS, Windows and Linux.",
+  "main": "src/main/index.js",
   "scripts": {
-    "start": "electron .",
-    "electron:linux": "electron-builder build --linux",
-    "electron:windows": "electron-builder build --windows",
-    "electron:mac": "electron-builder build --mac"
+    "start": "electron-forge start",
+    "dev": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx ."
   },
   "author": {
     "name": "milkfish",
@@ -20,38 +21,25 @@
     "url": "git+https://github.com/sdjnmxd/electron-audiostation.git"
   },
   "devDependencies": {
-    "electron": "^15.3.0",
-    "electron-builder": "^22.14.5"
-  },
-  "build": {
-    "appId": "moe.mxd.Electron-AudioStation",
-    "productName": "Electron AudioStation",
-    "copyright": "milkfish",
-    "directories": {
-      "output": "release/"
-    },
-    "win": {
-      "icon": "assets/icon.png",
-      "target": [
-        "portable",
-        "nsis"
-      ]
-    },
-    "mac": {
-      "icon": "assets/icon.png",
-      "target": [
-        "dmg"
-      ]
-    },
-    "linux": {
-      "icon": "assets/icon.png",
-      "target": [
-        "rpm"
-      ]
-    }
+    "@electron-forge/cli": "^7.2.0",
+    "@electron-forge/maker-deb": "^7.2.0",
+    "@electron-forge/maker-dmg": "^7.2.0",
+    "@electron-forge/maker-rpm": "^7.2.0",
+    "@electron-forge/maker-squirrel": "^7.2.0",
+    "@electron-forge/maker-zip": "^7.2.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.2.0",
+    "@electron-forge/publisher-github": "^7.2.0",
+    "electron": "^29.0.1",
+    "eslint": "^8.55.0",
+    "eslint-plugin-import": "^2.29.0"
   },
   "dependencies": {
-    "electron-store": "^8.0.1",
-    "electron-prompt": "^1.7.0"
+    "electron-log": "^5.0.1",
+    "electron-squirrel-startup": "^1.0.0",
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.4"
+  },
+  "electronDownload": {
+    "mirror": "https://npmmirror.com/mirrors/electron/"
   }
 }

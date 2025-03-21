@@ -18,7 +18,9 @@
 
 - 🎵 Wraps Synology AudioStation web into a native desktop application
 - 🎮 Media control shortcuts: Play/Pause, Next Track, Previous Track, Stop
-- ⚙️ Simple configuration: Quick settings edit with `Ctrl+E` or `Cmd+E`
+- 🔊 Volume control: Volume Up, Volume Down
+- 🌐 Multi-language support: English and Chinese interfaces
+- ⚙️ Simple configuration: Quick settings edit for all options
 - 🖥️ Cross-platform: Supports macOS and Windows
 
 ## 📦 Installation
@@ -29,15 +31,15 @@ Download the appropriate installer for your operating system from [GitHub Releas
 
 ### Supported Platforms
 
-- **Windows**: Portable version or installer (nsis)
-- **macOS**: `.dmg`
-- **Linux**: `.rpm`
+- **Windows**: Portable version and installer (nsis)
+- **macOS**: `.dmg` (Universal Binary, supports both Intel and Apple Silicon)
+- **Linux**: `.deb`, and `.rpm`
 
 ## 🚀 Quick Start
 
 1. Download and install the application
 2. Run the application
-3. On first launch, enter your Synology AudioStation URL (e.g., `https://your-nas-address/music`)
+3. On first launch, enter your Synology AudioStation URL (e.g., `https://your-nas-address/audio/`)
 4. Enjoy your music!
 
 ## ⌨️ Shortcuts
@@ -56,7 +58,7 @@ Download the appropriate installer for your operating system from [GitHub Releas
 
 ### Requirements
 
-- Node.js
+- Node.js 16+
 - npm or yarn
 
 ### Setup Development Environment
@@ -80,20 +82,25 @@ yarn start
 ### Build Application
 
 ```bash
-# Build for Windows
-npm run electron:windows
+# Build for all platforms
+npm run make
 # or
-yarn electron:windows
+yarn make
 
-# Build for macOS
-npm run electron:mac
+# Build for Windows only
+npm run make -- --platform=win32
 # or
-yarn electron:mac
+yarn make -- --platform=win32
 
-# Build for Linux
-npm run electron:linux
+# Build for macOS only
+npm run make -- --platform=darwin
 # or
-yarn electron:linux
+yarn make -- --platform=darwin
+
+# Build for Linux only
+npm run make -- --platform=linux
+# or
+yarn make -- --platform=linux
 ```
 
 ## 📝 License
