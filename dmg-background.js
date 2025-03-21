@@ -39,9 +39,15 @@ async function createDmgBackground() {
     ctx.strokeStyle = '#007AFF';
     ctx.stroke();
 
+    // 确保 assets 目录存在
+    const assetsDir = path.join(__dirname, 'assets');
+    if (!fs.existsSync(assetsDir)) {
+        fs.mkdirSync(assetsDir, { recursive: true });
+    }
+
     // 保存图片
     const buffer = canvas.toBuffer('image/png');
-    fs.writeFileSync(path.join(__dirname, 'assets', 'dmg-background.png'), buffer);
+    fs.writeFileSync(path.join(assetsDir, 'dmg-background.png'), buffer);
 
     console.log('DMG 背景图片已生成：assets/dmg-background.png');
 }
