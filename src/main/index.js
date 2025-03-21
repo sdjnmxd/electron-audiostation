@@ -1,19 +1,11 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, dialog, shell } = require('electron');
 const path = require('path');
-const log = require('electron-log');
+const log = require('../common/logger');
 const Store = require('electron-store');
 const { autoUpdater } = require('electron-updater');
 const { createMenu } = require('./menu');
 const { registerShortcuts, unregisterShortcuts } = require('./shortcuts');
 const i18n = require('../common/i18n');
-
-// 配置日志
-log.transports.file.level = 'info';
-log.transports.console.level = 'debug';
-
-// 设置日志文件编码和格式
-log.transports.file.format = '{y}-{m}-{d} {h}:{i}:{s}.{ms} [{level}] {text}';
-log.transports.file.encoding = 'utf8';
 
 // 使用英文日志消息以避免编码问题
 log.info(i18n.format('app_start'));
@@ -26,7 +18,10 @@ const store = new Store({
     startMinimized: false,
     autoLaunch: false,
     alwaysOnTop: false,
-    theme: 'system' // system, light, dark
+    theme: 'system', // system, light, dark
+    closeAction: 'ask', // ask, minimize, exit
+    language: 'system', // system, zh-CN, en-US
+    showMenu: false // 默认不显示菜单
   }
 });
 
@@ -45,6 +40,92 @@ let mainWindow;
 let tray;
 let isQuitting = false;
 
+// 确保应用只有一个实例
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  // 如果无法获取锁，说明已经有一个实例在运行，退出当前实例
+  log.info('Another instance is already running. Quitting...');
+  app.quit();
+} else {
+  // 监听第二个实例的启动
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    log.info('Second instance detected. Focusing the main window...');
+    
+    // 如果主窗口存在，则聚焦它
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.show();
+      mainWindow.focus();
+      
+      // 检查命令行参数，可以用于处理从外部打开的URL等
+      const url = commandLine.find(arg => arg.startsWith('audiostation://'));
+      if (url) {
+        // 处理自定义协议URL
+        log.info('Custom protocol URL detected:', url);
+        // 在这里添加处理自定义协议的代码
+      }
+    }
+  });
+  
+  // 应用准备就绪
+  app.whenReady().then(() => {
+    // 预热国际化模块
+    log.info('App language: ' + i18n.currentLocale);
+    
+    createWindow();
+    
+    // 只有在设置为显示菜单时才创建菜单
+    if (store.get('showMenu', false)) {
+      createMenu(mainWindow, store);
+    }
+    
+    // 注册快捷键
+    registerShortcuts(mainWindow, SynologyAudioStationControlScript);
+    
+    // 如果设置了启动时最小化，则隐藏窗口
+    if (store.get('startMinimized')) {
+      mainWindow.hide();
+    }
+    
+    // 设置窗口置顶
+    mainWindow.setAlwaysOnTop(store.get('alwaysOnTop', false));
+    
+    // 在macOS上，当点击dock图标且没有其他窗口打开时，重新创建一个窗口
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      } else {
+        // 如果窗口已存在但被隐藏，则显示它
+        if (mainWindow && !mainWindow.isVisible()) {
+          mainWindow.show();
+        }
+      }
+    });
+  });
+  
+  // 应用退出前
+  app.on('before-quit', () => {
+    log.info(i18n.format('app_quitting'));
+    isQuitting = true;
+    
+    // 注销快捷键
+    unregisterShortcuts();
+  });
+  
+  // 所有窗口关闭时
+  app.on('window-all-closed', () => {
+    log.info(i18n.format('all_windows_closed'));
+    
+    // 在macOS上，除非用户使用Cmd + Q明确退出，否则保持应用活跃状态
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
+  });
+}
+
 // 创建窗口
 function createWindow() {
   const { width, height } = store.get('windowBounds');
@@ -54,6 +135,7 @@ function createWindow() {
     height,
     title: 'Electron AudioStation',
     icon: path.join(__dirname, '../../assets/icon.png'),
+    autoHideMenuBar: !store.get('showMenu', false), // 根据设置控制菜单栏自动隐藏
     webPreferences: {
       preload: path.join(__dirname, '../renderer/preload.js'),
       contextIsolation: true,
@@ -67,7 +149,9 @@ function createWindow() {
   if (url) {
     mainWindow.loadURL(url);
   } else {
-    showConfigPrompt();
+    // 如果没有配置 URL，直接打开设置窗口
+    mainWindow.loadFile(path.join(__dirname, '../renderer/welcome.html'));
+    // 在欢迎页面中添加打开设置的按钮
   }
 
   // 保存窗口大小
@@ -80,15 +164,98 @@ function createWindow() {
 
   // 窗口关闭处理
   mainWindow.on('close', (event) => {
-    if (!isQuitting) {
+    if (isQuitting) {
+      return; // 如果是应用退出，则不阻止关闭
+    }
+    
+    const closeAction = store.get('closeAction', 'ask');
+    
+    if (closeAction === 'minimize') {
+      // 直接最小化到托盘
       event.preventDefault();
       mainWindow.hide();
+      return false;
+    } else if (closeAction === 'exit') {
+      // 直接退出
+      isQuitting = true;
+      return true;
+    } else {
+      // 询问用户
+      event.preventDefault();
+      
+      // 动态检测当前语言
+      const detectedLocale = i18n.detectLanguage();
+      const isZhCN = detectedLocale.startsWith('zh');
+      
+      log.info('Dialog language detection: ' + detectedLocale + ' (isZhCN: ' + isZhCN + ')');
+      
+      // 根据检测到的语言选择文本
+      const dialogTexts = isZhCN ? {
+        title: '关闭确认',
+        message: '您想要将应用最小化到托盘还是退出应用？',
+        minimize: '最小化到托盘',
+        exit: '退出应用',
+        cancel: '取消',
+        remember: '记住我的选择'
+      } : {
+        title: 'Close Confirmation',
+        message: 'Do you want to minimize to tray or exit the application?',
+        minimize: 'Minimize to Tray',
+        exit: 'Exit Application',
+        cancel: 'Cancel',
+        remember: 'Remember my choice'
+      };
+      
+      const options = {
+        type: 'question',
+        buttons: [
+          dialogTexts.minimize,
+          dialogTexts.exit,
+          dialogTexts.cancel
+        ],
+        defaultId: 0,
+        title: dialogTexts.title,
+        message: dialogTexts.message,
+        checkboxLabel: dialogTexts.remember,
+        checkboxChecked: false,
+        // 设置固定宽度，确保布局一致
+        width: 400,
+        // 确保按钮宽度一致
+        normalizeAccessKeys: true
+      };
+      
+      dialog.showMessageBox(mainWindow, options).then((result) => {
+        if (result.response === 0) {
+          // 最小化到托盘
+          mainWindow.hide();
+          
+          // 如果勾选了"记住我的选择"
+          if (result.checkboxChecked) {
+            store.set('closeAction', 'minimize');
+          }
+        } else if (result.response === 1) {
+          // 退出应用
+          if (result.checkboxChecked) {
+            store.set('closeAction', 'exit');
+          }
+          
+          isQuitting = true;
+          app.quit();
+        }
+        // 如果是"取消"，什么都不做
+      });
+      
       return false;
     }
   });
 
-  // 创建菜单
-  createMenu(mainWindow, store);
+  // 如果设置为不显示菜单，则完全移除菜单
+  if (!store.get('showMenu', false)) {
+    mainWindow.setMenu(null);
+  } else {
+    // 创建菜单
+    createMenu(mainWindow, store);
+  }
   
   // 注册快捷键
   registerShortcuts(mainWindow, SynologyAudioStationControlScript);
@@ -103,12 +270,48 @@ function createWindow() {
 // 创建系统托盘
 function createTray() {
   try {
-
     tray = new Tray(path.join(__dirname, '../../assets/icon.png'));
+    
+    // 获取当前语言
+    const detectedLocale = i18n.detectLanguage();
+    const isZhCN = detectedLocale.startsWith('zh');
+    
+    // 托盘菜单文本
+    const trayTexts = isZhCN ? {
+      toggleWindow: '显示/隐藏窗口',
+      play: '播放/暂停',
+      stop: '停止',
+      previous: '上一曲',
+      next: '下一曲',
+      volumeUp: '增大音量',
+      volumeDown: '减小音量',
+      settings: '设置',
+      help: '帮助',
+      repository: '访问 GitHub 仓库',
+      issues: '报告问题',
+      about: '关于',
+      logs: '查看日志',
+      quit: '退出'
+    } : {
+      toggleWindow: 'Show/Hide Window',
+      play: 'Play/Pause',
+      stop: 'Stop',
+      previous: 'Previous',
+      next: 'Next',
+      volumeUp: 'Volume Up',
+      volumeDown: 'Volume Down',
+      settings: 'Settings',
+      help: 'Help',
+      repository: 'Visit GitHub Repository',
+      issues: 'Report Issues',
+      about: 'About',
+      logs: 'View Logs',
+      quit: 'Exit'
+    };
     
     const contextMenu = Menu.buildFromTemplate([
       { 
-        label: '显示/隐藏窗口', 
+        label: trayTexts.toggleWindow, 
         click: () => {
           if (mainWindow.isVisible()) {
             mainWindow.hide();
@@ -119,37 +322,107 @@ function createTray() {
       },
       { type: 'separator' },
       { 
-        label: '播放/暂停', 
+        label: trayTexts.play, 
         click: () => {
           mainWindow.webContents.executeJavaScript(SynologyAudioStationControlScript.play);
         }
       },
       { 
-        label: '上一曲', 
+        label: trayTexts.stop, 
+        click: () => {
+          mainWindow.webContents.executeJavaScript(SynologyAudioStationControlScript.stop);
+        }
+      },
+      { 
+        label: trayTexts.previous, 
         click: () => {
           mainWindow.webContents.executeJavaScript(SynologyAudioStationControlScript.previous);
         }
       },
       { 
-        label: '下一曲', 
+        label: trayTexts.next, 
         click: () => {
           mainWindow.webContents.executeJavaScript(SynologyAudioStationControlScript.next);
         }
       },
       { 
-        label: '停止', 
+        label: trayTexts.volumeUp, 
         click: () => {
-          mainWindow.webContents.executeJavaScript(SynologyAudioStationControlScript.stop);
+          mainWindow.webContents.executeJavaScript(SynologyAudioStationControlScript.volumeUp);
+        }
+      },
+      { 
+        label: trayTexts.volumeDown, 
+        click: () => {
+          mainWindow.webContents.executeJavaScript(SynologyAudioStationControlScript.volumeDown);
         }
       },
       { type: 'separator' },
       { 
-        label: '编辑配置', 
-        click: showConfigPrompt 
+        label: trayTexts.settings, 
+        click: showSettings 
+      },
+      { type: 'separator' },
+      {
+        label: trayTexts.help,
+        submenu: [
+          {
+            label: trayTexts.repository,
+            click: async () => {
+              await shell.openExternal('https://github.com/sdjnmxd/electron-audiostation');
+            }
+          },
+          {
+            label: trayTexts.issues,
+            click: async () => {
+              await shell.openExternal('https://github.com/sdjnmxd/electron-audiostation/issues');
+            }
+          },
+          { type: 'separator' },
+          {
+            label: trayTexts.about,
+            click: () => {
+              // 获取当前语言
+              const detectedLocale = i18n.detectLanguage();
+              const isZhCN = detectedLocale.startsWith('zh');
+              
+              // 关于对话框文本
+              const aboutTexts = isZhCN ? {
+                title: '关于 Electron AudioStation',
+                version: '版本',
+                author: '作者',
+                description: '一个使用 Electron 构建的 Synology AudioStation 客户端。',
+                ok: '确定'
+              } : {
+                title: 'About Electron AudioStation',
+                version: 'Version',
+                author: 'Author',
+                description: 'An Electron-based client for Synology AudioStation.',
+                ok: 'OK'
+              };
+              
+              dialog.showMessageBox(mainWindow, {
+                title: aboutTexts.title,
+                message: 'Electron AudioStation',
+                detail: `${aboutTexts.version}: ${app.getVersion()}\n${aboutTexts.author}: milkfish\n\n${aboutTexts.description}`,
+                buttons: [aboutTexts.ok],
+                icon: path.join(__dirname, '../../assets/icon.png'),
+                // 设置固定宽度，确保布局一致
+                width: 400
+              });
+            }
+          },
+          {
+            label: trayTexts.logs,
+            click: () => {
+              openLogViewer();
+            }
+          }
+        ]
       },
       { type: 'separator' },
       { 
-        label: '退出', 
+        label: trayTexts.quit, 
         click: () => {
           isQuitting = true;
           app.quit();
@@ -173,167 +446,266 @@ function createTray() {
   }
 }
 
-// 配置提示
-function showConfigPrompt() {
+// 打开日志查看器
+function openLogViewer() {
   try {
-    log.info(i18n.format('config_window_open'));
+    // 获取当前语言
+    const detectedLocale = i18n.detectLanguage();
+    const isZhCN = detectedLocale.startsWith('zh');
     
-    // 检查是否已经存在配置窗口
-    const existingConfigWindow = BrowserWindow.getAllWindows().find(win => 
-      win.getTitle() === '配置 Electron AudioStation');
+    // 日志查看器窗口标题
+    const logViewerTitle = isZhCN ? '日志查看器' : 'Log Viewer';
     
-    if (existingConfigWindow) {
+    // 检查是否已经存在日志查看器窗口
+    const existingLogViewer = BrowserWindow.getAllWindows().find(win => 
+      win.getTitle() === logViewerTitle);
+    
+    if (existingLogViewer) {
       // 如果已存在，则聚焦它
-      if (existingConfigWindow.isMinimized()) {
-        existingConfigWindow.restore();
+      if (existingLogViewer.isMinimized()) {
+        existingLogViewer.restore();
       }
-      existingConfigWindow.focus();
-      log.info(i18n.format('existing_config_window'));
+      existingLogViewer.focus();
       return;
     }
     
-    // 创建配置窗口
-    const configWindow = new BrowserWindow({
-      width: 500,
-      height: 400, // 增加高度以适应内容
-      title: '配置 Electron AudioStation',
+    // 创建日志查看器窗口
+    const logViewerWindow = new BrowserWindow({
+      width: 800,
+      height: 600,
+      title: logViewerTitle,
       parent: mainWindow,
-      modal: false, // 改为非模态窗口
+      modal: false,
       show: false,
+      autoHideMenuBar: true, // 自动隐藏菜单栏
       webPreferences: {
-        preload: path.join(__dirname, '../renderer/config-preload.js'),
+        preload: path.join(__dirname, '../renderer/log-viewer-preload.js'),
         contextIsolation: true,
         nodeIntegration: false
       }
     });
     
-    // 加载配置HTML文件
-    const configPath = path.join(__dirname, '../renderer/config.html');
-    log.info(i18n.format('config_window_loading'), configPath);
+    // 完全移除菜单栏
+    logViewerWindow.setMenu(null);
     
-    configWindow.loadFile(configPath);
+    // 发送日志内容到窗口
+    logViewerWindow.webContents.once('did-finish-load', () => {
+      try {
+        // 使用新的日志模块读取日志
+        const logContent = log.readLogFile();
+        logViewerWindow.webContents.send('log-content', logContent);
+      } catch (error) {
+        logViewerWindow.webContents.send('log-error', error.message);
+      }
+    });
+  } catch (error) {
+    log.error('打开日志查看器失败:', error);
+    dialog.showErrorBox('日志查看器错误', `无法打开日志查看器: ${error.message}`);
+  }
+}
+
+// 显示设置窗口
+function showSettings() {
+  try {
+    // 获取当前语言
+    const detectedLocale = i18n.detectLanguage();
+    const isZhCN = detectedLocale.startsWith('zh');
     
-    configWindow.once('ready-to-show', () => {
-      configWindow.show();
-      configWindow.focus(); // 确保窗口获得焦点
-      log.info(i18n.format('config_window_shown'));
+    // 设置窗口标题
+    const settingsTitle = isZhCN ? '设置' : 'Settings';
+    
+    // 检查是否已经存在设置窗口
+    const existingSettingsWindow = BrowserWindow.getAllWindows().find(win => 
+      win.getTitle() === settingsTitle);
+    
+    if (existingSettingsWindow) {
+      // 如果已存在，则聚焦它
+      if (existingSettingsWindow.isMinimized()) {
+        existingSettingsWindow.restore();
+      }
+      existingSettingsWindow.focus();
+      return;
+    }
+    
+    // 创建设置窗口
+    const settingsWindow = new BrowserWindow({
+      width: 750,  // 增加宽度
+      height: 650, // 增加高度
+      title: settingsTitle,
+      parent: mainWindow,
+      modal: false,
+      show: false,
+      autoHideMenuBar: true,
+      webPreferences: {
+        preload: path.join(__dirname, '../renderer/settings-preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false
+      }
     });
     
-    // 处理配置保存
-    ipcMain.once('save-config', (event, url) => {
-      log.info(i18n.format('config_saved'), url);
-      store.set('url', url);
-      configWindow.close();
+    // 或者完全移除菜单栏
+    settingsWindow.setMenu(null);
+    
+    // 加载设置HTML文件
+    const settingsPath = path.join(__dirname, '../renderer/settings.html');
+    settingsWindow.loadFile(settingsPath);
+    
+    settingsWindow.once('ready-to-show', () => {
+      settingsWindow.show();
+      settingsWindow.focus();
+    });
+    
+    // 处理获取设置
+    ipcMain.handle('get-settings', () => {
+      return {
+        url: store.get('url', ''),
+        closeAction: store.get('closeAction'),
+        startMinimized: store.get('startMinimized'),
+        alwaysOnTop: store.get('alwaysOnTop'),
+        theme: store.get('theme'),
+        language: store.get('language'),
+        showMenu: store.get('showMenu')
+      };
+    });
+    
+    // 处理保存设置
+    ipcMain.once('save-settings', (event, settings) => {
+      // 获取旧设置
+      const oldLanguage = store.get('language', 'system');
+      const oldUrl = store.get('url', '');
+      const oldShowMenu = store.get('showMenu', false);
       
-      if (mainWindow) {
-        mainWindow.loadURL(url);
-      } else {
-        createWindow();
+      // 保存设置
+      store.set('url', settings.url);
+      store.set('closeAction', settings.closeAction);
+      store.set('startMinimized', settings.startMinimized);
+      store.set('alwaysOnTop', settings.alwaysOnTop);
+      store.set('theme', settings.theme);
+      store.set('language', settings.language);
+      store.set('showMenu', settings.showMenu);
+      
+      // 应用设置
+      mainWindow.setAlwaysOnTop(settings.alwaysOnTop);
+      
+      // 如果菜单显示设置已更改
+      if (settings.showMenu !== oldShowMenu) {
+        if (settings.showMenu) {
+          // 创建菜单
+          createMenu(mainWindow, store);
+          mainWindow.setAutoHideMenuBar(false);
+        } else {
+          // 移除菜单
+          mainWindow.setMenu(null);
+          mainWindow.setAutoHideMenuBar(true);
+        }
       }
+      
+      // 如果 URL 已更改，重新加载页面
+      let needReload = false;
+      if (settings.url !== oldUrl && settings.url) {
+        needReload = true;
+      }
+      
+      // 如果语言设置已更改
+      if (settings.language !== oldLanguage) {
+        // 重新创建菜单
+        createMenu(mainWindow, store);
+        
+        // 重新创建托盘菜单
+        if (tray) {
+          tray.destroy();
+          tray = null;
+          createTray();
+        }
+        
+        // 检测当前实际语言
+        const currentDetectedLanguage = i18n.detectLanguage();
+        const willChangeLanguage = 
+          (settings.language !== 'system' && settings.language !== currentDetectedLanguage) ||
+          (settings.language === 'system' && oldLanguage !== 'system');
+        
+        if (willChangeLanguage) {
+          // 根据当前语言选择提示文本
+          const isCurrentZhCN = currentDetectedLanguage.startsWith('zh');
+          
+          // 关闭设置窗口
+          settingsWindow.close();
+          
+          // 显示重启提示
+          dialog.showMessageBox({
+            type: 'info',
+            title: isCurrentZhCN ? '语言设置已更改' : 'Language Setting Changed',
+            message: isCurrentZhCN ? 
+              '语言设置已更改，某些界面元素可能需要重启应用才能完全应用新的语言设置。是否现在重启应用？' : 
+              'Language setting has been changed. Some UI elements may require restarting the application to fully apply the new language setting. Would you like to restart now?',
+            buttons: isCurrentZhCN ? 
+              ['立即重启', '稍后重启'] : 
+              ['Restart Now', 'Restart Later'],
+            defaultId: 0,
+            // 设置固定宽度，确保布局一致
+            width: 500,
+            // 确保按钮宽度一致
+            normalizeAccessKeys: true
+          }).then(result => {
+            if (result.response === 0) {
+              // 用户选择立即重启
+              app.relaunch();
+              isQuitting = true;
+              app.quit();
+            } else if (needReload) {
+              // 如果需要重新加载页面
+              mainWindow.loadURL(settings.url);
+            }
+          });
+          
+          return; // 提前返回，避免执行下面的代码
+        }
+      }
+      
+      // 关闭设置窗口
+      settingsWindow.close();
+      
+      // 如果需要重新加载页面
+      if (needReload) {
+        mainWindow.loadURL(settings.url);
+      }
+      
+      // 移除所有相关的一次性事件监听器
+      ipcMain.removeHandler('get-settings');
+      ipcMain.removeAllListeners('save-settings');
+      ipcMain.removeAllListeners('cancel-settings');
     });
     
     // 处理取消
-    ipcMain.once('cancel-config', () => {
-      log.info(i18n.format('config_canceled'));
-      configWindow.close();
-      
-      if (!store.get('url') && mainWindow) {
-        mainWindow.close();
-      }
+    ipcMain.once('cancel-settings', () => {
+      settingsWindow.close();
     });
     
     // 处理窗口关闭
-    configWindow.on('closed', () => {
-      log.info(i18n.format('config_window_closed'));
+    settingsWindow.on('closed', () => {
       // 移除所有相关的一次性事件监听器
-      ipcMain.removeAllListeners('save-config');
-      ipcMain.removeAllListeners('cancel-config');
+      ipcMain.removeHandler('get-settings');
+      ipcMain.removeAllListeners('save-settings');
+      ipcMain.removeAllListeners('cancel-settings');
     });
   } catch (error) {
-    log.error(i18n.format('config_window_error'), error);
-    dialog.showErrorBox('配置错误', `无法打开配置窗口: ${error.message}`);
+    log.error('打开设置窗口失败:', error);
+    dialog.showErrorBox('设置错误', `无法打开设置窗口: ${error.message}`);
   }
 }
 
-// 修改 edit-config 事件处理
-ipcMain.on('edit-config', () => {
-  log.info(i18n.format('edit_config_request'));
-  showConfigPrompt();
+// 处理打开设置消息
+ipcMain.on('open-settings', () => {
+  showSettings();
 });
 
-// 修改 editConfig 函数
-function editConfig() {
-  log.info(i18n.format('edit_config_menu'));
-  showConfigPrompt();
-}
-
-// 在主进程中处理 edit-config 消息
-ipcMain.handle('get-current-url', () => {
-  return store.get('url', '');
+// 处理获取当前语言
+ipcMain.handle('get-current-language', () => {
+  return i18n.detectLanguage();
 });
-
-// 应用准备就绪
-app.whenReady().then(() => {
-  createWindow();
-  
-  // macOS 激活处理
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    } else {
-      mainWindow.show();
-    }
-  });
-});
-
-// 所有窗口关闭时退出应用（Windows/Linux）
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-
-// 应用退出前清理
-app.on('before-quit', () => {
-  isQuitting = true;
-  unregisterShortcuts();
-});
-
-// 处理未捕获的异常
-process.on('uncaughtException', (error) => {
-  log.error(i18n.format('uncaught_exception'), error);
-});
-
-function openLogViewer() {
-  const logViewerWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
-    title: 'Log Viewer',
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-      preload: path.join(__dirname, '../renderer/log-preload.js')
-    }
-  });
-  
-  logViewerWindow.loadFile(path.join(__dirname, '../renderer/log-viewer.html'));
-  
-  // 发送日志内容到窗口
-  logViewerWindow.webContents.once('did-finish-load', () => {
-    const logFilePath = log.transports.file.getFile().path;
-    const fs = require('fs');
-    
-    try {
-      const logContent = fs.readFileSync(logFilePath, 'utf8');
-      logViewerWindow.webContents.send('log-content', logContent);
-    } catch (error) {
-      logViewerWindow.webContents.send('log-error', error.message);
-    }
-  });
-}
 
 // 导出函数
 module.exports = {
   openLogViewer,
-  editConfig
+  showSettings
 }; 

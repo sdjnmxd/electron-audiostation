@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveConfig: (url) => ipcRenderer.send('save-config', url),
   cancelConfig: () => ipcRenderer.send('cancel-config'),
   requestEditConfig: () => ipcRenderer.send('edit-config'),
+  requestOpenSettings: () => ipcRenderer.send('open-settings'),
   
   // 获取应用信息
   getAppVersion: () => ipcRenderer.invoke('get-app-version')
