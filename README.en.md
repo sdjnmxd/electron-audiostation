@@ -31,9 +31,9 @@ Download the appropriate installer for your operating system from [GitHub Releas
 
 ### Supported Platforms
 
-- **Windows**: Portable version or installer (nsis)
-- **macOS**: `.dmg`
-- **Linux**: `.rpm`
+- **Windows**: Portable version and installer (nsis)
+- **macOS**: `.dmg` and `.zip`
+- **Linux**: `.AppImage`, `.deb`, and `.rpm`
 
 ## 🚀 Quick Start
 
@@ -58,7 +58,7 @@ Download the appropriate installer for your operating system from [GitHub Releas
 
 ### Requirements
 
-- Node.js
+- Node.js 16+
 - npm or yarn
 
 ### Setup Development Environment
@@ -82,20 +82,25 @@ yarn start
 ### Build Application
 
 ```bash
-# Build for Windows
-npm run electron:windows
+# Build for all platforms
+npm run make
 # or
-yarn electron:windows
+yarn make
 
-# Build for macOS
-npm run electron:mac
+# Build for Windows only
+npm run make -- --platform=win32
 # or
-yarn electron:mac
+yarn make -- --platform=win32
 
-# Build for Linux
-npm run electron:linux
+# Build for macOS only
+npm run make -- --platform=darwin
 # or
-yarn electron:linux
+yarn make -- --platform=darwin
+
+# Build for Linux only
+npm run make -- --platform=linux
+# or
+yarn make -- --platform=linux
 ```
 
 ## 📝 License

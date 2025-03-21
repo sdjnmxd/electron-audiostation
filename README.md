@@ -31,9 +31,9 @@
 
 ### 支持的平台
 
-- **Windows**：便携版或安装包（nsis）
-- **macOS**：`.dmg`
-- **Linux**：`.rpm`
+- **Windows**：便携版（portable）和安装包（nsis）
+- **macOS**：`.dmg` 和 `.zip`
+- **Linux**：`.AppImage`、`.deb` 和 `.rpm`
 
 ## 🚀 快速开始
 
@@ -57,7 +57,7 @@
 
 ### 要求
 
-- Node.js
+- Node.js 16+
 - npm 或 yarn
 
 ### 设置开发环境
@@ -81,20 +81,25 @@ yarn start
 ### 构建应用
 
 ```bash
-# 构建 Windows 版本
-npm run electron:windows
+# 为所有平台构建
+npm run make
 # 或
-yarn electron:windows
+yarn make
 
-# 构建 macOS 版本
-npm run electron:mac
+# 仅构建 Windows 版本
+npm run make -- --platform=win32
 # 或
-yarn electron:mac
+yarn make -- --platform=win32
 
-# 构建 Linux 版本
-npm run electron:linux
+# 仅构建 macOS 版本
+npm run make -- --platform=darwin
 # 或
-yarn electron:linux
+yarn make -- --platform=darwin
+
+# 仅构建 Linux 版本
+npm run make -- --platform=linux
+# 或
+yarn make -- --platform=linux
 ```
 
 ## 📝 许可证
