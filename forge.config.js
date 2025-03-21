@@ -45,15 +45,6 @@ module.exports = {
       }
     },
     {
-      name: '@electron-forge/maker-appimage',
-      config: {
-        options: {
-          icon: path.join(__dirname, 'assets', 'icon.png'),
-          categories: ['Audio', 'Music']
-        }
-      }
-    },
-    {
       name: '@electron-forge/maker-dmg',
       config: {
         icon: path.join(__dirname, 'assets', 'icon.icns'),
