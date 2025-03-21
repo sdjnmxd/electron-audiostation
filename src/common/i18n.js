@@ -15,6 +15,7 @@ try {
 const messages = {
   'zh-CN': {
     app_start: '应用启动',
+    app_quitting: '应用正在退出',
     shortcut_registered: '快捷键注册成功: {0} ({1})',
     shortcut_failed: '快捷键注册失败: {0} ({1})',
     shortcut_unregistered: '快捷键注销成功: {0}',
@@ -45,6 +46,7 @@ const messages = {
   },
   'en-US': {
     app_start: 'Application started',
+    app_quitting: 'Application is quitting',
     shortcut_registered: 'Shortcut registered: {0} ({1})',
     shortcut_failed: 'Failed to register shortcut: {0} ({1})',
     shortcut_unregistered: 'Shortcut unregistered: {0}',
