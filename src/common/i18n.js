@@ -17,7 +17,10 @@ const messages = {
     config_canceled: '取消配置',
     config_window_closed: '配置窗口已关闭',
     config_window_error: '打开配置窗口失败:',
-    uncaught_exception: '未捕获的异常:'
+    uncaught_exception: '未捕获的异常:',
+    edit_config_request: '收到编辑配置请求',
+    edit_config_menu: '从菜单调用编辑配置',
+    existing_config_window: '使用已存在的配置窗口'
   },
   'en-US': {
     app_start: 'Application started',
@@ -34,7 +37,10 @@ const messages = {
     config_canceled: 'Configuration canceled',
     config_window_closed: 'Configuration window closed',
     config_window_error: 'Failed to open configuration window:',
-    uncaught_exception: 'Uncaught exception:'
+    uncaught_exception: 'Uncaught exception:',
+    edit_config_request: 'Edit config request received',
+    edit_config_menu: 'Edit config called from menu',
+    existing_config_window: 'Using existing config window'
   }
 };
 

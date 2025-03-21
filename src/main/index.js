@@ -197,7 +197,7 @@ function showConfigPrompt() {
         existingConfigWindow.restore();
       }
       existingConfigWindow.focus();
-      log.info('使用已存在的配置窗口');
+      log.info(i18n.format('existing_config_window'));
       return;
     }
     
@@ -266,13 +266,13 @@ function showConfigPrompt() {
 
 // 修改 edit-config 事件处理
 ipcMain.on('edit-config', () => {
-  log.info('收到编辑配置请求');
+  log.info(i18n.format('edit_config_request'));
   showConfigPrompt();
 });
 
-// 添加菜单项直接调用的处理函数
+// 修改 editConfig 函数
 function editConfig() {
-  log.info('从菜单调用编辑配置');
+  log.info(i18n.format('edit_config_menu'));
   showConfigPrompt();
 }
 

@@ -62,7 +62,8 @@ module.exports = {
           owner: 'sdjnmxd',
           name: 'electron-audiostation'
         },
-        prerelease: false
+        prerelease: false,
+        draft: false
       }
     }
   ]
