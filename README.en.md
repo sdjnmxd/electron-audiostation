@@ -32,8 +32,8 @@ Download the appropriate installer for your operating system from [GitHub Releas
 ### Supported Platforms
 
 - **Windows**: Portable version and installer (nsis)
-- **macOS**: `.dmg` and `.zip`
-- **Linux**: `.AppImage`, `.deb`, and `.rpm`
+- **macOS**: `.dmg` (Universal Binary, supports both Intel and Apple Silicon)
+- **Linux**: `.deb`, and `.rpm`
 
 ## 🚀 Quick Start
 

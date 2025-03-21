@@ -32,8 +32,8 @@
 ### 支持的平台
 
 - **Windows**：便携版（portable）和安装包（nsis）
-- **macOS**：`.dmg` 和 `.zip`
-- **Linux**：`.AppImage`、`.deb` 和 `.rpm`
+- **macOS**：`.dmg`（通用二进制，同时支持 Intel 和 Apple Silicon）
+- **Linux**：`.deb` 和 `.rpm`
 
 ## 🚀 快速开始
 

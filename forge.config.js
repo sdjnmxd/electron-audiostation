@@ -8,6 +8,8 @@ module.exports = {
     appCopyright: 'milkfish',
     appCategoryType: 'public.app-category.music',
     osxSign: {},
+    arch: ['x64', 'arm64'],
+    universal: true,
     protocols: [
       {
         name: 'Electron AudioStation',
@@ -25,10 +27,6 @@ module.exports = {
       }
     },
     {
-      name: '@electron-forge/maker-zip',
-      platforms: ['darwin']
-    },
-    {
       name: '@electron-forge/maker-deb',
       config: {
         options: {
@@ -44,6 +42,41 @@ module.exports = {
           icon: path.join(__dirname, 'assets', 'icon.png'),
           categories: ['Audio', 'Music']
         }
+      }
+    },
+    {
+      name: '@electron-forge/maker-appimage',
+      config: {
+        options: {
+          icon: path.join(__dirname, 'assets', 'icon.png'),
+          categories: ['Audio', 'Music']
+        }
+      }
+    },
+    {
+      name: '@electron-forge/maker-dmg',
+      config: {
+        icon: path.join(__dirname, 'assets', 'icon.icns'),
+        background: path.join(__dirname, 'assets', 'dmg-background.png'),
+        format: 'ULFO',
+        window: {
+          width: 540,
+          height: 380
+        },
+        contents: [
+          {
+            x: 400,
+            y: 180,
+            type: 'link',
+            path: '/Applications'
+          },
+          {
+            x: 140,
+            y: 180,
+            type: 'file',
+            path: ''
+          }
+        ]
       }
     }
   ],
