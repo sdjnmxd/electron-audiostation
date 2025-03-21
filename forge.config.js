@@ -27,6 +27,10 @@ module.exports = {
       }
     },
     {
+      name: '@electron-forge/maker-zip',
+      platforms: ['darwin']
+    },
+    {
       name: '@electron-forge/maker-deb',
       config: {
         options: {
@@ -47,9 +51,9 @@ module.exports = {
     {
       name: '@electron-forge/maker-dmg',
       config: {
+        format: 'ULFO',
         icon: path.join(__dirname, 'assets', 'icon.icns'),
         background: path.join(__dirname, 'assets', 'dmg-background.png'),
-        format: 'ULFO',
         window: {
           width: 540,
           height: 380
