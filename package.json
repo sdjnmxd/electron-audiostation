@@ -8,9 +8,7 @@
     "dev": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "publish": "electron-forge publish",
-    "lint": "eslint --ext .js,.jsx,.ts,.tsx .",
-    "publish:github": "electron-forge publish --publisher github"
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx ."
   },
   "author": {
     "name": "milkfish",

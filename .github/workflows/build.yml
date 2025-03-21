@@ -54,21 +54,31 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v4
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: out/make
+          path: artifacts
       
-      - name: Publish GitHub Release
+      - name: Display structure of downloaded files
+        run: find artifacts -type f | sort
+      
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/**/*.dmg
+            artifacts/**/*.exe
+            artifacts/**/*.zip
+            artifacts/**/*.deb
+            artifacts/**/*.rpm
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run publish:github 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

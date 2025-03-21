@@ -101,18 +101,5 @@ module.exports = {
       name: '@electron-forge/plugin-auto-unpack-natives',
       config: {}
     }
-  ],
-  publishers: [
-    {
-      name: '@electron-forge/publisher-github',
-      config: {
-        repository: {
-          owner: 'sdjnmxd',
-          name: 'electron-audiostation'
-        },
-        prerelease: false,
-        draft: false
-      }
-    }
   ]
 }; 
