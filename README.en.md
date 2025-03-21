@@ -1,65 +1,79 @@
-# Electron AudioStation
+<p align="right">
+  English | <a href="README.md">中文</a>
+</p>
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/sdjnmxd/electron-audiostation)
-![GitHub all releases](https://img.shields.io/github/downloads/sdjnmxd/electron-audiostation/total)
-![GitHub](https://img.shields.io/github/license/sdjnmxd/electron-audiostation)
+<p align="center">
+  <img src="assets/icon.png" alt="logo" height="180" />
+</p>
 
-An Electron-based client for Synology AudioStation.
+<h1 align="center">Electron AudioStation</h1>
 
-English | [中文](README.md)
+<p align="center">
+  A lightweight Synology AudioStation client for macOS and Windows. Built with Electron.
+</p>
 
-## Features
+![preview](https://user-images.githubusercontent.com/6388562/64693419-d34c0380-d4c9-11e9-90e8-1fdc0d778c36.png)
 
-- **Bilingual Support**: Automatically detects system language and supports both English and Chinese interfaces, manually switchable in settings
-- **System Tray Integration**: Minimize to system tray with playback controls in the tray menu
-- **Global Shortcuts**: Control music playback using keyboard shortcuts without switching to the application window
-- **Always on Top**: Option to keep the window always on top
-- **Start Minimized**: Option to start the application minimized to tray
+## ✨ Features
 
-## Download
+- 🎵 Wraps Synology AudioStation web into a native desktop application
+- 🎮 Media control shortcuts: Play/Pause, Next Track, Previous Track, Stop
+- 🔊 Volume control: Volume Up, Volume Down
+- 🌐 Multi-language support: English and Chinese interfaces
+- ⚙️ Simple configuration: Quick settings edit for all options
+- 🖥️ Cross-platform: Supports macOS and Windows
 
-Download the latest version from [GitHub Releases](https://github.com/sdjnmxd/electron-audiostation/releases).
+## 📦 Installation
 
-## Installation
+### Download Installer
 
-Download the appropriate package for your operating system and run it.
+Download the appropriate installer for your operating system from [GitHub Releases](https://github.com/sdjnmxd/electron-audiostation/releases).
 
-- Windows: `.exe` installer
-- macOS: `.dmg` installer
-- Linux: `.AppImage` or `.deb` package
+### Supported Platforms
 
-## Usage
+- **Windows**: Portable version or installer (nsis)
+- **macOS**: `.dmg`
+- **Linux**: `.rpm`
 
-1. On first launch, you'll need to configure your Synology AudioStation URL
-2. Enter your Synology NAS AudioStation URL, e.g., `https://your-synology-nas:5001/audio/`
-3. Log in to your Synology account
+## 🚀 Quick Start
+
+1. Download and install the application
+2. Run the application
+3. On first launch, enter your Synology AudioStation URL (e.g., `https://your-nas-address/audio/`)
 4. Enjoy your music!
 
-## Keyboard Shortcuts
+## ⌨️ Shortcuts
 
-- `MediaPlayPause`: Play/Pause
-- `MediaStop`: Stop
-- `MediaPreviousTrack`: Previous Track
-- `MediaNextTrack`: Next Track
+| Shortcut | Function |
+|----------|----------|
+| `Media Play/Pause` | Play or pause the current song |
+| `Media Next Track` | Play the next song |
+| `Media Previous Track` | Play the previous song |
+| `Media Stop` | Stop playback |
+| `Ctrl+E` / `Cmd+E` | Edit configuration |
 
-## Development
+**Note**: On macOS 10.14 Mojave and later, you may need to authorize the app as a [trusted accessibility client](https://developer.apple.com/library/archive/documentation/Accessibility/Conceptual/AccessibilityMacOSX/OSXAXTestingApps.html) to use media control shortcuts.
+
+## 🛠️ Development
 
 ### Requirements
 
-- Node.js 16+
+- Node.js
 - npm or yarn
 
-### Install Dependencies
+### Setup Development Environment
 
 ```bash
+# Clone repository
+git clone https://github.com/sdjnmxd/electron-audiostation.git
+cd electron-audiostation
+
+# Install dependencies
 npm install
 # or
 yarn
-```
 
-### Run Development Version
-
-```bash
+# Start application
 npm start
 # or
 yarn start
@@ -68,15 +82,32 @@ yarn start
 ### Build Application
 
 ```bash
-npm run make
+# Build for Windows
+npm run electron:windows
 # or
-yarn make
+yarn electron:windows
+
+# Build for macOS
+npm run electron:mac
+# or
+yarn electron:mac
+
+# Build for Linux
+npm run electron:linux
+# or
+yarn electron:linux
 ```
 
-## Contributing
+## 📝 License
 
-Pull requests and issues are welcome!
+This project is licensed under the [GPL-3.0](LICENSE) License.
 
-## License
+**Electron AudioStation is an open-source community project and not an official Synology product. Synology AudioStation Web is a component in the Synology DSM.**
 
-MIT 
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+
+## 📧 Contact
+
+Author: [milkfish](https://www.milkfish.site) 

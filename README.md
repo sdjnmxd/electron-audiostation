@@ -1,65 +1,78 @@
-# Electron AudioStation
+<p align="right">
+  中文 | <a href="README.en.md">English</a>
+</p>
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/sdjnmxd/electron-audiostation)
-![GitHub all releases](https://img.shields.io/github/downloads/sdjnmxd/electron-audiostation/total)
-![GitHub](https://img.shields.io/github/license/sdjnmxd/electron-audiostation)
+<p align="center">
+  <img src="assets/icon.png" alt="logo" height="180" />
+</p>
 
-一个使用 Electron 构建的 Synology AudioStation 客户端。
+<h1 align="center">Electron AudioStation</h1>
 
-[English](README.en.md) | 中文
+<p align="center">
+  一个轻量级的 Synology AudioStation 客户端，适用于 macOS 和 Windows。使用 Electron 构建。
+</p>
 
-## 特性
+![preview](https://user-images.githubusercontent.com/6388562/64693419-d34c0380-d4c9-11e9-90e8-1fdc0d778c36.png)
 
-- **双语言支持**: 自动检测系统语言并支持中文和英文界面，可在设置中手动切换
-- **系统托盘集成**: 最小化到系统托盘，支持通过托盘菜单控制音乐播放
-- **全局快捷键**: 使用键盘快捷键控制音乐播放，无需切换到应用窗口
-- **窗口置顶**: 可选择窗口是否始终置顶
-- **启动时最小化**: 可设置应用启动时自动最小化到托盘
+## ✨ 特性
 
-## 下载
+- 🎵 将 Synology AudioStation 网页包装成原生桌面应用
+- 🎮 媒体控制快捷键：播放/暂停、下一曲、上一曲、停止
+- 🔊 音量控制：增大音量、减小音量
+- 🌐 多语言支持：中文和英文界面
+- ⚙️ 简单配置：通过设置界面快速编辑所有选项
+- 🖥️ 跨平台：支持 macOS 和 Windows
 
-从 [GitHub Releases](https://github.com/sdjnmxd/electron-audiostation/releases) 下载最新版本。
+## 📦 安装
 
-## 安装
+### 下载安装包
 
-下载适合您操作系统的安装包并运行。
+从 [GitHub Releases](https://github.com/sdjnmxd/electron-audiostation/releases) 下载适合您操作系统的安装包。
 
-- Windows: `.exe` 安装文件
-- macOS: `.dmg` 安装文件
-- Linux: `.AppImage` 或 `.deb` 安装文件
+### 支持的平台
 
-## 使用方法
+- **Windows**：便携版或安装包（nsis）
+- **macOS**：`.dmg`
+- **Linux**：`.rpm`
 
-1. 首次启动时，您需要配置 Synology AudioStation 的 URL
-2. 输入您的 Synology NAS 的 AudioStation URL，例如：`https://your-synology-nas:5001/audio/`
-3. 登录到您的 Synology 账户
+## 🚀 快速开始
+
+1. 下载并安装应用
+2. 运行应用
+3. 首次启动时，输入您的 Synology AudioStation URL（例如：`https://your-nas-address/audio/`）
 4. 享受您的音乐！
 
-## 快捷键
+## ⌨️ 快捷键
 
-- `MediaPlayPause`: 播放/暂停
-- `MediaStop`: 停止
-- `MediaPreviousTrack`: 上一曲
-- `MediaNextTrack`: 下一曲
+| 快捷键 | 功能 |
+|----------|----------|
+| `媒体播放/暂停` | 播放或暂停当前歌曲 |
+| `媒体下一曲` | 播放下一首歌曲 |
+| `媒体上一曲` | 播放上一首歌曲 |
+| `媒体停止` | 停止播放 |
 
-## 开发
+**注意**：在 macOS 10.14 Mojave 及更高版本上，您可能需要将应用授权为[可信任的辅助功能客户端](https://developer.apple.com/library/archive/documentation/Accessibility/Conceptual/AccessibilityMacOSX/OSXAXTestingApps.html)以使用媒体控制快捷键。
 
-### 环境要求
+## 🛠️ 开发
 
-- Node.js 16+
+### 要求
+
+- Node.js
 - npm 或 yarn
 
-### 安装依赖
+### 设置开发环境
 
 ```bash
+# 克隆仓库
+git clone https://github.com/sdjnmxd/electron-audiostation.git
+cd electron-audiostation
+
+# 安装依赖
 npm install
 # 或
 yarn
-```
 
-### 运行开发版本
-
-```bash
+# 启动应用
 npm start
 # 或
 yarn start
@@ -68,15 +81,32 @@ yarn start
 ### 构建应用
 
 ```bash
-npm run make
+# 构建 Windows 版本
+npm run electron:windows
 # 或
-yarn make
+yarn electron:windows
+
+# 构建 macOS 版本
+npm run electron:mac
+# 或
+yarn electron:mac
+
+# 构建 Linux 版本
+npm run electron:linux
+# 或
+yarn electron:linux
 ```
 
-## 贡献
+## 📝 许可证
 
-欢迎提交 Pull Request 或创建 Issue！
+本项目采用 [GPL-3.0](LICENSE) 许可证。
 
-## 许可证
+**Electron AudioStation 是一个开源社区项目，而非 Synology 官方产品。Synology AudioStation Web 是 Synology DSM 中的一个组件。**
 
-MIT
+## 🤝 贡献
+
+欢迎贡献、提出问题和功能请求！
+
+## 📧 联系
+
+作者：[milkfish](https://www.milkfish.site)
