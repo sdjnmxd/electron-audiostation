@@ -103,17 +103,8 @@ function createWindow() {
 // 创建系统托盘
 function createTray() {
   try {
-    // 尝试使用专用的托盘图标
-    const trayIconPath = path.join(__dirname, '../../assets/tray-icon.png');
-    
-    // 检查文件是否存在
-    if (require('fs').existsSync(trayIconPath)) {
-      tray = new Tray(trayIconPath);
-    } else {
-      // 如果不存在，使用主图标
-      tray = new Tray(path.join(__dirname, '../../assets/icon.png'));
-      log.warn(i18n.format('tray_icon_missing'));
-    }
+
+    tray = new Tray(path.join(__dirname, '../../assets/icon.png'));
     
     const contextMenu = Menu.buildFromTemplate([
       { 

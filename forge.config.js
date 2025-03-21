@@ -21,7 +21,6 @@ module.exports = {
       name: '@electron-forge/maker-squirrel',
       config: {
         name: 'Electron_AudioStation',
-        iconUrl: 'https://raw.githubusercontent.com/sdjnmxd/electron-audiostation/main/assets/icon.ico',
         setupIcon: path.join(__dirname, 'assets', 'icon.ico')
       }
     },
