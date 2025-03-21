@@ -1,5 +1,25 @@
 const path = require('path');
 
+// 获取环境变量中指定的架构，如果没有则使用默认值
+const targetArch = process.env.ELECTRON_ARCH || 'all';
+
+// 根据目标架构确定打包配置
+const getArchConfig = () => {
+  if (targetArch === 'all') {
+    return {
+      arch: ['x64', 'arm64'],
+      universal: true
+    };
+  }
+  
+  return {
+    arch: [targetArch],
+    universal: false
+  };
+};
+
+const archConfig = getArchConfig();
+
 module.exports = {
   packagerConfig: {
     asar: true,
@@ -8,8 +28,9 @@ module.exports = {
     appCopyright: 'milkfish',
     appCategoryType: 'public.app-category.music',
     osxSign: {},
-    arch: ['x64', 'arm64'],
-    universal: true,
+    // 使用动态配置的架构
+    arch: archConfig.arch,
+    universal: archConfig.universal,
     protocols: [
       {
         name: 'Electron AudioStation',
