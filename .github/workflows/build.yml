@@ -35,7 +35,16 @@ jobs:
         run: npm ci
       
       - name: Make Electron app
-        run: npm run make
+        run: |
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            if [ "${{ matrix.arch }}" = "x64" ]; then
+              npm run make -- --arch=x64
+            elif [ "${{ matrix.arch }}" = "arm64" ]; then
+              npm run make -- --arch=arm64
+            fi
+          else
+            npm run make -- --arch=${{ matrix.arch }}
+          fi
         env:
           ELECTRON_ARCH: ${{ matrix.arch }}
       
