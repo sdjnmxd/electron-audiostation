@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, dialog, shell, session } = require('electron');
 const path = require('path');
 const log = require('../common/logger');
 const Store = require('electron-store');
@@ -21,9 +21,19 @@ const store = new Store({
     theme: 'system', // system, light, dark
     closeAction: 'ask', // ask, minimize, exit
     language: 'system', // system, zh-CN, en-US
-    showMenu: false // 默认不显示菜单
+    showMenu: false, // 默认不显示菜单
+    userAgentType: 'chrome', // 默认使用 Chrome UA
+    customUserAgent: '' // 自定义 UA 存储
   }
 });
+
+// 预设的 User-Agent 字符串
+const USER_AGENT_STRINGS = {
+  chrome: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  firefox: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+  safari: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+  edge: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
+};
 
 // 控制脚本
 const SynologyAudioStationControlScript = {
@@ -70,10 +80,36 @@ if (!gotTheLock) {
     }
   });
   
+  // 在应用启动时设置全局 User-Agent
+  const userAgentType = store.get('userAgentType', 'chrome');
+  const customUserAgent = store.get('customUserAgent', '');
+
+  // 确定要使用的 User-Agent
+  let userAgent;
+  if (userAgentType === 'custom' && customUserAgent) {
+    userAgent = customUserAgent;
+  } else if (userAgentType === 'default') {
+    userAgent = undefined; // 使用 Electron 默认值
+  } else {
+    userAgent = USER_AGENT_STRINGS[userAgentType] || USER_AGENT_STRINGS.chrome;
+  }
+
+  // 设置全局 User-Agent
+  if (userAgent) {
+    app.userAgentFallback = userAgent;
+    log.info('设置应用级 User-Agent: ' + userAgent);
+  }
+
   // 应用准备就绪
   app.whenReady().then(() => {
     // 预热国际化模块
     log.info('App language: ' + i18n.currentLocale);
+    
+    // 设置默认 session 的 User-Agent
+    if (userAgent) {
+      session.defaultSession.setUserAgent(userAgent);
+      log.info('设置默认 session User-Agent: ' + userAgent);
+    }
     
     createWindow();
     
@@ -130,12 +166,33 @@ if (!gotTheLock) {
 function createWindow() {
   const { width, height } = store.get('windowBounds');
   
+  // 获取用户代理设置
+  const userAgentType = store.get('userAgentType', 'chrome');
+  const customUserAgent = store.get('customUserAgent', '');
+  
+  // 确定要使用的 User-Agent
+  let userAgent;
+  if (userAgentType === 'custom' && customUserAgent) {
+    userAgent = customUserAgent;
+  } else if (userAgentType === 'default') {
+    userAgent = undefined; // 使用 Electron 默认值
+  } else {
+    userAgent = USER_AGENT_STRINGS[userAgentType] || USER_AGENT_STRINGS.chrome;
+  }
+  
+  // 在创建窗口前设置默认 session 的 User-Agent
+  if (userAgent) {
+    app.userAgentFallback = userAgent;
+    session.defaultSession.setUserAgent(userAgent);
+    log.info('设置全局 User-Agent: ' + userAgent);
+  }
+  
   mainWindow = new BrowserWindow({
     width,
     height,
     title: 'Electron AudioStation',
     icon: path.join(__dirname, '../../assets/icon.png'),
-    autoHideMenuBar: !store.get('showMenu', false), // 根据设置控制菜单栏自动隐藏
+    autoHideMenuBar: !store.get('showMenu', false),
     webPreferences: {
       preload: path.join(__dirname, '../renderer/preload.js'),
       contextIsolation: true,
@@ -143,6 +200,12 @@ function createWindow() {
       spellcheck: false
     }
   });
+
+  // 确保窗口的 webContents 也使用正确的 User-Agent
+  if (userAgent) {
+    mainWindow.webContents.userAgent = userAgent;
+    mainWindow.webContents.session.setUserAgent(userAgent);
+  }
 
   // 加载URL
   const url = store.get('url');
@@ -564,7 +627,9 @@ function showSettings() {
         alwaysOnTop: store.get('alwaysOnTop'),
         theme: store.get('theme'),
         language: store.get('language'),
-        showMenu: store.get('showMenu')
+        showMenu: store.get('showMenu'),
+        userAgentType: store.get('userAgentType', 'chrome'),
+        customUserAgent: store.get('customUserAgent', '')
       };
     });
     
@@ -574,6 +639,8 @@ function showSettings() {
       const oldLanguage = store.get('language', 'system');
       const oldUrl = store.get('url', '');
       const oldShowMenu = store.get('showMenu', false);
+      const oldUserAgentType = store.get('userAgentType', 'chrome');
+      const oldCustomUserAgent = store.get('customUserAgent', '');
       
       // 保存设置
       store.set('url', settings.url);
@@ -583,6 +650,8 @@ function showSettings() {
       store.set('theme', settings.theme);
       store.set('language', settings.language);
       store.set('showMenu', settings.showMenu);
+      store.set('userAgentType', settings.userAgentType);
+      store.set('customUserAgent', settings.customUserAgent);
       
       // 应用设置
       mainWindow.setAlwaysOnTop(settings.alwaysOnTop);
@@ -660,6 +729,52 @@ function showSettings() {
           
           return; // 提前返回，避免执行下面的代码
         }
+      }
+      
+      // 检查 UA 是否已更改
+      const uaChanged = settings.userAgentType !== oldUserAgentType || 
+                        (settings.userAgentType === 'custom' && settings.customUserAgent !== oldCustomUserAgent);
+      
+      // 如果 UA 已更改，需要重启应用
+      if (uaChanged) {
+        // 获取当前检测到的语言
+        const currentDetectedLanguage = i18n.detectLanguage();
+        const isCurrentZhCN = currentDetectedLanguage.startsWith('zh');
+        
+        // 关闭设置窗口
+        settingsWindow.close();
+        
+        // 显示重启提示
+        dialog.showMessageBox({
+          type: 'info',
+          title: isCurrentZhCN ? 'User-Agent 设置已更改' : 'User-Agent Setting Changed',
+          message: isCurrentZhCN ? 
+            'User-Agent 设置已更改，需要重启应用才能应用新的设置。是否现在重启应用？' : 
+            'User-Agent setting has been changed. The application needs to restart to apply the new setting. Would you like to restart now?',
+          buttons: isCurrentZhCN ? 
+            ['立即重启', '稍后重启'] : 
+            ['Restart Now', 'Restart Later'],
+          defaultId: 0,
+          width: 500,
+          normalizeAccessKeys: true
+        }).then(result => {
+          if (result.response === 0) {
+            // 用户选择立即重启
+            // 清除 session 数据以确保新的 UA 设置生效
+            mainWindow.webContents.session.clearStorageData({
+              storages: ['cookies', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage'],
+            }).then(() => {
+              app.relaunch();
+              isQuitting = true;
+              app.quit();
+            });
+          } else if (needReload) {
+            // 如果需要重新加载页面
+            mainWindow.loadURL(settings.url);
+          }
+        });
+        
+        return; // 提前返回，避免执行下面的代码
       }
       
       // 关闭设置窗口

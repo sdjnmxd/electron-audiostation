@@ -13,7 +13,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   requestOpenSettings: () => ipcRenderer.send('open-settings'),
   
   // 获取应用信息
-  getAppVersion: () => ipcRenderer.invoke('get-app-version')
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  
+  // 获取当前 User-Agent
+  getCurrentUserAgent: () => navigator.userAgent
 });
 
 // 注入自定义样式以改善 AudioStation 的桌面体验

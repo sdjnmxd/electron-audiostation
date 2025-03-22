@@ -177,6 +177,29 @@
       </div>
     </div>
     
+    <div class="section">
+      <h2 id="advanced-settings-title">高级设置</h2>
+      
+      <div class="form-group">
+        <label for="userAgentType" id="user-agent-type-label">User-Agent 类型</label>
+        <select id="userAgentType">
+          <option value="chrome" id="ua-chrome">Chrome</option>
+          <option value="firefox" id="ua-firefox">Firefox</option>
+          <option value="safari" id="ua-safari">Safari</option>
+          <option value="edge" id="ua-edge">Microsoft Edge</option>
+          <option value="default" id="ua-default">Electron 默认</option>
+          <option value="custom" id="ua-custom">自定义</option>
+        </select>
+        <small class="help-text" id="user-agent-type-help">选择浏览器 User-Agent 类型</small>
+      </div>
+      
+      <div class="form-group" id="customUserAgentGroup" style="display: none;">
+        <label for="customUserAgent" id="custom-user-agent-label">自定义 User-Agent</label>
+        <input type="text" id="customUserAgent" placeholder="Mozilla/5.0 ...">
+        <small class="help-text" id="custom-user-agent-help">输入完整的自定义 User-Agent 字符串</small>
+      </div>
+    </div>
+    
     <div class="button-group">
       <button class="secondary" id="cancelButton">取消</button>
       <button class="primary" id="saveButton">保存</button>
@@ -218,7 +241,18 @@
         alwaysOnTopLabel: '窗口始终置顶',
         showMenuLabel: '显示菜单栏',
         cancelButton: '取消',
-        saveButton: '保存'
+        saveButton: '保存',
+        advancedSettingsTitle: '高级设置',
+        userAgentTypeLabel: 'User-Agent 类型',
+        uaChrome: 'Chrome',
+        uaFirefox: 'Firefox',
+        uaSafari: 'Safari',
+        uaEdge: 'Microsoft Edge',
+        uaDefault: 'Electron 默认',
+        uaCustom: '自定义',
+        userAgentTypeHelp: '选择浏览器 User-Agent 类型',
+        customUserAgentLabel: '自定义 User-Agent',
+        customUserAgentHelp: '输入完整的自定义 User-Agent 字符串'
       } : {
         // 英文文本
         settingsTitle: 'Application Settings',
@@ -243,7 +277,18 @@
         alwaysOnTopLabel: 'Always on top',
         showMenuLabel: 'Show Menu Bar',
         cancelButton: 'Cancel',
-        saveButton: 'Save'
+        saveButton: 'Save',
+        advancedSettingsTitle: 'Advanced Settings',
+        userAgentTypeLabel: 'User-Agent Type',
+        uaChrome: 'Chrome',
+        uaFirefox: 'Firefox',
+        uaSafari: 'Safari',
+        uaEdge: 'Microsoft Edge',
+        uaDefault: 'Electron Default',
+        uaCustom: 'Custom',
+        userAgentTypeHelp: 'Select browser User-Agent type',
+        customUserAgentLabel: 'Custom User-Agent',
+        customUserAgentHelp: 'Enter complete custom User-Agent string'
       };
       
       // 应用文本到界面元素
@@ -270,6 +315,17 @@
       document.getElementById('show-menu-label').textContent = texts.showMenuLabel;
       document.getElementById('cancelButton').textContent = texts.cancelButton;
       document.getElementById('saveButton').textContent = texts.saveButton;
+      document.getElementById('advanced-settings-title').textContent = texts.advancedSettingsTitle;
+      document.getElementById('user-agent-type-label').textContent = texts.userAgentTypeLabel;
+      document.getElementById('ua-chrome').textContent = texts.uaChrome;
+      document.getElementById('ua-firefox').textContent = texts.uaFirefox;
+      document.getElementById('ua-safari').textContent = texts.uaSafari;
+      document.getElementById('ua-edge').textContent = texts.uaEdge;
+      document.getElementById('ua-default').textContent = texts.uaDefault;
+      document.getElementById('ua-custom').textContent = texts.uaCustom;
+      document.getElementById('user-agent-type-help').textContent = texts.userAgentTypeHelp;
+      document.getElementById('custom-user-agent-label').textContent = texts.customUserAgentLabel;
+      document.getElementById('custom-user-agent-help').textContent = texts.customUserAgentHelp;
       
       // 填充表单
       document.getElementById('language').value = settings.language || 'system';
@@ -279,6 +335,22 @@
       document.getElementById('startMinimized').checked = settings.startMinimized || false;
       document.getElementById('alwaysOnTop').checked = settings.alwaysOnTop || false;
       document.getElementById('showMenu').checked = settings.showMenu || false;
+      document.getElementById('userAgentType').value = settings.userAgentType || 'chrome';
+      document.getElementById('customUserAgent').value = settings.customUserAgent || '';
+      
+      // 根据 UA 类型显示/隐藏自定义 UA 输入框
+      if (settings.userAgentType === 'custom') {
+        document.getElementById('customUserAgentGroup').style.display = 'block';
+      }
+      
+      // 监听 UA 类型变化
+      document.getElementById('userAgentType').addEventListener('change', function() {
+        if (this.value === 'custom') {
+          document.getElementById('customUserAgentGroup').style.display = 'block';
+        } else {
+          document.getElementById('customUserAgentGroup').style.display = 'none';
+        }
+      });
       
       // 保存按钮
       document.getElementById('saveButton').addEventListener('click', () => {
@@ -289,7 +361,9 @@
           closeAction: document.getElementById('closeAction').value,
           startMinimized: document.getElementById('startMinimized').checked,
           alwaysOnTop: document.getElementById('alwaysOnTop').checked,
-          showMenu: document.getElementById('showMenu').checked
+          showMenu: document.getElementById('showMenu').checked,
+          userAgentType: document.getElementById('userAgentType').value,
+          customUserAgent: document.getElementById('customUserAgent').value.trim()
         };
         
         window.electronAPI.saveSettings(newSettings);
