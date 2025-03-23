@@ -352,8 +352,16 @@
         }
       });
       
+      // 在渲染进程中监听配置变更
+      window.electronAPI.onConfigChanged((event, newSettings) => {
+        console.log('收到配置变更事件:', newSettings);
+        // 可以在这里更新UI或执行其他操作
+      });
+      
       // 保存按钮
-      document.getElementById('saveButton').addEventListener('click', () => {
+      document.getElementById('saveButton').addEventListener('click', async () => {
+        console.log('保存按钮被点击');
+        
         const newSettings = {
           language: document.getElementById('language').value,
           url: document.getElementById('url').value.trim(),
@@ -366,7 +374,31 @@
           customUserAgent: document.getElementById('customUserAgent').value.trim()
         };
         
-        window.electronAPI.saveSettings(newSettings);
+        console.log('准备保存的设置:', newSettings);
+        
+        try {
+          // 直接保存设置
+          window.electronAPI.saveSettings(newSettings);
+        } catch (error) {
+          console.error('保存设置时出错:', error);
+          alert('保存设置时出错: ' + error.message);
+        }
+      });
+      
+      // 添加一个立即重启按钮示例
+      document.getElementById('restartButton').addEventListener('click', () => {
+        window.electronAPI.restartApp();
+      });
+      
+      // 添加一个应用无需重启设置的按钮示例
+      document.getElementById('applyButton').addEventListener('click', async () => {
+        try {
+          await window.electronAPI.applyConfigWithoutRestart();
+          alert('设置已应用');
+        } catch (error) {
+          console.error('应用设置时出错:', error);
+          alert('应用设置时出错: ' + error.message);
+        }
       });
       
       // 取消按钮
