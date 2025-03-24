@@ -1,7 +1,16 @@
 name: Build and Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create Release ?'
+        required: true
+        default: false
+        type: boolean
   push:
+    branches:
+      - master
     tags:
       - 'v*'
 
@@ -54,7 +63,7 @@ jobs:
   publish:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
     
     steps:
       - name: 检出代码仓库
@@ -68,18 +77,23 @@ jobs:
       - name: 显示下载文件结构
         run: find artifacts -type f | sort
       
-      - name: 从标签提取版本号
+      - name: 从标签或提交提取版本号
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=dev-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          fi
       
       - name: 创建发布
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref || format('dev-{0}', github.sha) }}
           name: Release ${{ steps.get_version.outputs.VERSION }}
           draft: false
-          prerelease: false
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
           files: |
             artifacts/**/*-*.dmg
             artifacts/**/*.exe
