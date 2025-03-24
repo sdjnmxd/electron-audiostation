@@ -47,13 +47,6 @@ jobs:
       - name: 安装依赖
         run: npm ci
       
-      - name: 安装 Flatpak 依赖 (仅 Linux)
-        if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder elfutils
-          sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-      
       - name: 构建 Electron 应用
         shell: bash
         run: npm run make -- --arch=${{ matrix.arch }}
@@ -69,7 +62,6 @@ jobs:
             out/make/**/*.dmg
             out/make/**/*.deb
             out/make/**/*.rpm
-            out/make/**/*.flatpak
           if-no-files-found: error
   
   publish:
@@ -111,7 +103,6 @@ jobs:
             artifacts/**/*.exe
             artifacts/**/*.deb
             artifacts/**/*.rpm
-            artifacts/**/*.flatpak
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
