@@ -24,22 +24,8 @@ module.exports = {
   packagerConfig: {
     asar: true,
     icon: './assets/icon',
-    appBundleId: 'moe.mxd.Electron-AudioStation',
-    appCopyright: 'milkfish',
-    appCategoryType: 'public.app-category.music',
-    osxSign: {},
-    arch: archConfig.arch,
-    universal: archConfig.universal,
-    protocols: [
-      {
-        name: 'Electron AudioStation',
-        schemes: ['electron-audiostation']
-      }
-    ],
-    ignore: [
-      /^\/\.git/,
-      /^\/\.github/,
-      /^\/out/
+    extraResource: [
+      './assets'
     ]
   },
   rebuildConfig: {},
@@ -56,7 +42,8 @@ module.exports = {
       config: {
         options: {
           icon: path.join(__dirname, 'assets', 'icon.png'),
-          categories: ['Audio', 'Music']
+          categories: ['Audio', 'Music', 'AudioVideo', 'Player'],
+          section: 'sound'
         }
       }
     },
@@ -65,7 +52,8 @@ module.exports = {
       config: {
         options: {
           icon: path.join(__dirname, 'assets', 'icon.png'),
-          categories: ['Audio', 'Music']
+          categories: ['Audio', 'Music', 'AudioVideo', 'Player'],
+          section: 'sound'
         }
       }
     },
@@ -80,8 +68,23 @@ module.exports = {
   ],
   plugins: [
     {
-      name: '@electron-forge/plugin-auto-unpack-natives',
-      config: {}
+      name: '@electron-forge/plugin-webpack',
+      config: {
+        mainConfig: './webpack.main.config.js',
+        renderer: {
+          config: './webpack.renderer.config.js',
+          entryPoints: [
+            {
+              html: './public/index.html',
+              js: './src/renderer/main.js',
+              name: 'main_window',
+              preload: {
+                js: './src/preload/index.js'
+              }
+            }
+          ]
+        }
+      }
     }
   ]
 }; 

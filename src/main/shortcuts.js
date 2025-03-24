@@ -1,93 +1,66 @@
 const { globalShortcut } = require('electron');
-const log = require('electron-log');
-const i18n = require('../common/i18n');
+const log = require('../common/logger');
+const { getMainWindow } = require('./window-manager');
 
-// 注册的快捷键列表，用于后续清理
-const registeredShortcuts = [];
+// 控制脚本
+const SynologyAudioStationControlScript = {
+  play: 'SYNO.SDS.AudioStation.Window.getPanelScope("SYNO.SDS.AudioStation.Main").audioPlayer.doPlay()',
+  stop: 'SYNO.SDS.AudioStation.Window.getPanelScope("SYNO.SDS.AudioStation.Main").audioPlayer.doStop()',
+  previous: 'SYNO.SDS.AudioStation.Window.getPanelScope("SYNO.SDS.AudioStation.Main").audioPlayer.doPrevious()',
+  next: 'SYNO.SDS.AudioStation.Window.getPanelScope("SYNO.SDS.AudioStation.Main").audioPlayer.doNext()',
+  volumeUp: 'SYNO.SDS.AudioStation.Window.getPanelScope("SYNO.SDS.AudioStation.Main").audioPlayer.setVolume(Math.min(100, SYNO.SDS.AudioStation.Window.getPanelScope("SYNO.SDS.AudioStation.Main").audioPlayer.getVolume() + 5))',
+  volumeDown: 'SYNO.SDS.AudioStation.Window.getPanelScope("SYNO.SDS.AudioStation.Main").audioPlayer.setVolume(Math.max(0, SYNO.SDS.AudioStation.Window.getPanelScope("SYNO.SDS.AudioStation.Main").audioPlayer.getVolume() - 5))'
+};
 
 /**
  * 注册全局快捷键
- * @param {BrowserWindow} mainWindow - 主窗口实例
- * @param {Object} controlScripts - 控制脚本对象
  */
-function registerShortcuts(mainWindow, controlScripts) {
-  // 媒体控制快捷键
-  const shortcuts = [
-    { 
-      key: 'MediaPlayPause', 
-      action: () => mainWindow.webContents.executeJavaScript(controlScripts.play),
-      description: 'Play/Pause'
-    },
-    { 
-      key: 'MediaPreviousTrack', 
-      action: () => mainWindow.webContents.executeJavaScript(controlScripts.previous),
-      description: 'Previous Track'
-    },
-    { 
-      key: 'MediaNextTrack', 
-      action: () => mainWindow.webContents.executeJavaScript(controlScripts.next),
-      description: 'Next Track'
-    },
-    { 
-      key: 'MediaStop', 
-      action: () => mainWindow.webContents.executeJavaScript(controlScripts.stop),
-      description: 'Stop'
-    },
-    { 
-      key: 'CommandOrControl+Up', 
-      action: () => mainWindow.webContents.executeJavaScript(controlScripts.volumeUp),
-      description: 'Volume Up'
-    },
-    { 
-      key: 'CommandOrControl+Down', 
-      action: () => mainWindow.webContents.executeJavaScript(controlScripts.volumeDown),
-      description: 'Volume Down'
-    },
-    { 
-      key: 'CommandOrControl+E', 
-      action: () => {
-        // 直接调用主进程的函数，而不是通过 IPC
-        require('./index').editConfig();
-      },
-      description: 'Edit Configuration'
-    }
-  ];
-
-  // 注册所有快捷键
-  shortcuts.forEach(shortcut => {
-    try {
-      const success = globalShortcut.register(shortcut.key, shortcut.action);
-      
-      if (success) {
-        registeredShortcuts.push(shortcut.key);
-        log.info(i18n.format('shortcut_registered', shortcut.key, shortcut.description));
-      } else {
-        log.warn(i18n.format('shortcut_failed', shortcut.key, shortcut.description));
-      }
-    } catch (error) {
-      log.error(`Error registering shortcut: ${shortcut.key}`, error);
-    }
+function registerShortcuts() {
+  // 媒体播放控制
+  globalShortcut.register('MediaPlayPause', () => {
+    executeAudioStationCommand('play');
   });
+  
+  globalShortcut.register('MediaStop', () => {
+    executeAudioStationCommand('stop');
+  });
+  
+  globalShortcut.register('MediaPreviousTrack', () => {
+    executeAudioStationCommand('previous');
+  });
+  
+  globalShortcut.register('MediaNextTrack', () => {
+    executeAudioStationCommand('next');
+  });
+  
+  log.info('Global shortcuts registered');
 }
 
 /**
- * 注销所有已注册的快捷键
+ * 注销全局快捷键
  */
 function unregisterShortcuts() {
-  registeredShortcuts.forEach(key => {
-    try {
-      globalShortcut.unregister(key);
-      log.info(i18n.format('shortcut_unregistered', key));
-    } catch (error) {
-      log.error(i18n.format('shortcut_unregister_error', key), error);
-    }
-  });
+  globalShortcut.unregisterAll();
+  log.info('Global shortcuts unregistered');
+}
+
+/**
+ * 执行AudioStation命令
+ */
+function executeAudioStationCommand(command) {
+  const mainWindow = getMainWindow();
+  if (!mainWindow) return;
   
-  // 清空注册列表
-  registeredShortcuts.length = 0;
+  const script = SynologyAudioStationControlScript[command];
+  if (script) {
+    mainWindow.webContents.executeJavaScript(script).catch(error => {
+      log.error(`Failed to execute ${command} command:`, error);
+    });
+  }
 }
 
 module.exports = {
   registerShortcuts,
-  unregisterShortcuts
+  unregisterShortcuts,
+  executeAudioStationCommand
 }; 
