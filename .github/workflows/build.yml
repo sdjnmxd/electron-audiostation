@@ -57,7 +57,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-${{ matrix.arch }}-build
-          path: out/make/**/*
+          path: |
+            out/make/**/*.exe
+            out/make/**/*.dmg
+            out/make/**/*.deb
+            out/make/**/*.rpm
           if-no-files-found: error
   
   publish:
@@ -97,7 +101,6 @@ jobs:
           files: |
             artifacts/**/*-*.dmg
             artifacts/**/*.exe
-            artifacts/**/*-*.zip
             artifacts/**/*.deb
             artifacts/**/*.rpm
           fail_on_unmatched_files: false
