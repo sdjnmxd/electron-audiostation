@@ -23,12 +23,11 @@ const archConfig = getArchConfig();
 module.exports = {
   packagerConfig: {
     asar: true,
-    icon: path.join(__dirname, 'assets', 'icon'),
+    icon: './assets/icon',
     appBundleId: 'moe.mxd.Electron-AudioStation',
     appCopyright: 'milkfish',
     appCategoryType: 'public.app-category.music',
     osxSign: {},
-    // 使用动态配置的架构
     arch: archConfig.arch,
     universal: archConfig.universal,
     protocols: [
@@ -36,6 +35,13 @@ module.exports = {
         name: 'Electron AudioStation',
         schemes: ['electron-audiostation']
       }
+    ],
+    ignore: [
+      /^\/\.git/,
+      /^\/\.github/,
+      /^\/node_modules\/(?!.*\.(node|dll)$)/,
+      /^\/out/,
+      /^\/src\/(?!renderer)/
     ]
   },
   rebuildConfig: {},
@@ -73,25 +79,11 @@ module.exports = {
       name: '@electron-forge/maker-dmg',
       config: {
         format: 'ULFO',
-        icon: path.join(__dirname, 'assets', 'icon.icns'),
-        background: path.join(__dirname, 'assets', 'dmg-background.png'),
-        window: {
-          width: 540,
-          height: 380
-        },
+        icon: './assets/icon.icns',
+        background: './assets/dmg-background.png',
         contents: [
-          {
-            x: 400,
-            y: 180,
-            type: 'link',
-            path: '/Applications'
-          },
-          {
-            x: 140,
-            y: 180,
-            type: 'file',
-            path: ''
-          }
+          { x: 448, y: 344, type: 'link', path: '/Applications' },
+          { x: 192, y: 344, type: 'file', path: '${productName}.app' }
         ]
       }
     }
