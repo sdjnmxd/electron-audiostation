@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, dialog, shell, session, nativeTheme } = require('electron');
 const path = require('path');
 const log = require('../common/logger');
 const Store = require('electron-store');
@@ -21,9 +21,19 @@ const store = new Store({
     theme: 'system', // system, light, dark
     closeAction: 'ask', // ask, minimize, exit
     language: 'system', // system, zh-CN, en-US
-    showMenu: false // 默认不显示菜单
+    showMenu: false, // 默认不显示菜单
+    userAgentType: 'chrome', // 默认使用 Chrome UA
+    customUserAgent: '' // 自定义 UA 存储
   }
 });
+
+// 预设的 User-Agent 字符串
+const USER_AGENT_STRINGS = {
+  chrome: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  firefox: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+  safari: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+  edge: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
+};
 
 // 控制脚本
 const SynologyAudioStationControlScript = {
@@ -39,6 +49,14 @@ const SynologyAudioStationControlScript = {
 let mainWindow;
 let tray;
 let isQuitting = false;
+
+// 定义需要重启的设置列表
+const RESTART_REQUIRED_SETTINGS = [
+  'userAgentType',
+  'customUserAgent',
+  'language',
+  'showMenu'
+];
 
 // 确保应用只有一个实例
 const gotTheLock = app.requestSingleInstanceLock();
@@ -70,10 +88,200 @@ if (!gotTheLock) {
     }
   });
   
+  // 在应用启动时设置全局 User-Agent
+  const userAgentType = store.get('userAgentType', 'chrome');
+  const customUserAgent = store.get('customUserAgent', '');
+
+  // 确定要使用的 User-Agent
+  let userAgent;
+  if (userAgentType === 'custom' && customUserAgent) {
+    userAgent = customUserAgent;
+  } else if (userAgentType === 'default') {
+    userAgent = undefined; // 使用 Electron 默认值
+  } else {
+    userAgent = USER_AGENT_STRINGS[userAgentType] || USER_AGENT_STRINGS.chrome;
+  }
+
+  // 设置全局 User-Agent
+  if (userAgent) {
+    app.userAgentFallback = userAgent;
+    log.info('设置应用级 User-Agent: ' + userAgent);
+  }
+
+  // 处理检查是否需要重启
+  ipcMain.handle('check-restart-required', (event, changedSettings) => {
+    // 检查是否有任何更改的设置需要重启
+    const needsRestart = Object.keys(changedSettings).some(key => 
+      RESTART_REQUIRED_SETTINGS.includes(key)
+    );
+    
+    log.info(`检查设置是否需要重启: ${needsRestart ? '需要' : '不需要'}`);
+    return needsRestart;
+  });
+
+  // 在保存设置后广播配置变更事件
+  function broadcastConfigChanged(settings) {
+    log.info('广播配置变更事件');
+    BrowserWindow.getAllWindows().forEach(win => {
+      if (win.webContents) {
+        win.webContents.send('config-changed', settings);
+      }
+    });
+  }
+
+  // 应用不需要重启的设置
+  async function applySettingsWithoutRestart() {
+    log.info('应用无需重启的设置');
+    // 获取当前设置
+    const url = store.get('url', '');
+    const alwaysOnTop = store.get('alwaysOnTop', false);
+    const theme = store.get('theme', 'system');
+    
+    // 应用设置
+    if (url && mainWindow) {
+      mainWindow.loadURL(url);
+    }
+    
+    if (mainWindow) {
+      mainWindow.setAlwaysOnTop(alwaysOnTop);
+    }
+    
+    // 应用主题设置
+    if (theme !== 'system') {
+      nativeTheme.themeSource = theme;
+    } else {
+      nativeTheme.themeSource = 'system';
+    }
+    
+    return true;
+  }
+
+  // 重启应用
+  function restartApplication() {
+    log.info('重启应用');
+    // 清除 session 数据以确保新的设置生效
+    mainWindow.webContents.session.clearStorageData({
+      storages: ['cookies', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage'],
+    }).then(() => {
+      app.relaunch();
+      isQuitting = true;
+      app.quit();
+    });
+  }
+
+  // 处理无需重启应用的设置
+  ipcMain.handle('apply-config-without-restart', async () => {
+    return applySettingsWithoutRestart();
+  });
+
+  // 处理重启应用
+  ipcMain.on('restart-app', () => {
+    restartApplication();
+  });
+
+  // 处理保存设置
+  ipcMain.on('save-settings', (event, settings) => {
+    log.info('收到保存设置请求:', settings);
+    
+    try {
+      (async () => {
+        // 获取当前检测到的语言
+        const currentDetectedLanguage = i18n.detectLanguage();
+        const isCurrentZhCN = currentDetectedLanguage.startsWith('zh');
+        
+        // 获取旧设置用于比较
+        const oldSettings = {};
+        RESTART_REQUIRED_SETTINGS.forEach(key => {
+          oldSettings[key] = store.get(key);
+        });
+        
+        // 保存所有设置
+        Object.keys(settings).forEach(key => {
+          store.set(key, settings[key]);
+        });
+        
+        log.info('已保存设置');
+        
+        // 广播配置变更事件
+        broadcastConfigChanged(settings);
+        
+        // 检查是否有需要重启的设置被更改
+        const changedRestartSettings = {};
+        let needsRestart = false;
+        
+        RESTART_REQUIRED_SETTINGS.forEach(key => {
+          if (settings[key] !== oldSettings[key] && settings[key] !== undefined) {
+            changedRestartSettings[key] = settings[key];
+            needsRestart = true;
+          }
+        });
+        
+        log.info('是否需要重启:', needsRestart);
+        
+        // 查找设置窗口
+        const settingsWindow = BrowserWindow.getAllWindows().find(win => 
+          win.getTitle() === (isCurrentZhCN ? '设置' : 'Settings'));
+        
+        if (needsRestart) {
+          // 关闭设置窗口
+          if (settingsWindow) {
+            settingsWindow.close();
+          }
+          
+          // 显示重启提示
+          dialog.showMessageBox({
+            type: 'info',
+            title: isCurrentZhCN ? '设置已更改' : 'Settings Changed',
+            message: isCurrentZhCN ? 
+              '某些设置已更改，需要重启应用才能完全应用。是否现在重启应用？' : 
+              'Some settings have been changed. The application needs to restart to fully apply the changes. Would you like to restart now?',
+            buttons: isCurrentZhCN ? 
+              ['立即重启', '稍后重启'] : 
+              ['Restart Now', 'Restart Later'],
+            defaultId: 0,
+            width: 500,
+            normalizeAccessKeys: true
+          }).then(dialogResult => {
+            if (dialogResult.response === 0) {
+              // 用户选择立即重启
+              log.info('用户选择立即重启');
+              restartApplication();
+            } else {
+              // 用户选择稍后重启，应用不需要重启的设置
+              log.info('用户选择稍后重启');
+              applySettingsWithoutRestart();
+            }
+          });
+        } else {
+          // 无需重启，直接应用设置
+          log.info('无需重启，直接应用设置');
+          await applySettingsWithoutRestart();
+          
+          // 关闭设置窗口
+          if (settingsWindow) {
+            settingsWindow.close();
+          }
+        }
+      })().catch(error => {
+        log.error('保存设置过程中出错:', error);
+        dialog.showErrorBox('设置错误', `保存设置过程中出错: ${error.message}`);
+      });
+    } catch (error) {
+      log.error('保存设置时出错:', error);
+      dialog.showErrorBox('设置错误', `保存设置时出错: ${error.message}`);
+    }
+  });
+
   // 应用准备就绪
   app.whenReady().then(() => {
     // 预热国际化模块
     log.info('App language: ' + i18n.currentLocale);
+    
+    // 设置默认 session 的 User-Agent
+    if (userAgent) {
+      session.defaultSession.setUserAgent(userAgent);
+      log.info('设置默认 session User-Agent: ' + userAgent);
+    }
     
     createWindow();
     
@@ -130,12 +338,33 @@ if (!gotTheLock) {
 function createWindow() {
   const { width, height } = store.get('windowBounds');
   
+  // 获取用户代理设置
+  const userAgentType = store.get('userAgentType', 'chrome');
+  const customUserAgent = store.get('customUserAgent', '');
+  
+  // 确定要使用的 User-Agent
+  let userAgent;
+  if (userAgentType === 'custom' && customUserAgent) {
+    userAgent = customUserAgent;
+  } else if (userAgentType === 'default') {
+    userAgent = undefined; // 使用 Electron 默认值
+  } else {
+    userAgent = USER_AGENT_STRINGS[userAgentType] || USER_AGENT_STRINGS.chrome;
+  }
+  
+  // 在创建窗口前设置默认 session 的 User-Agent
+  if (userAgent) {
+    app.userAgentFallback = userAgent;
+    session.defaultSession.setUserAgent(userAgent);
+    log.info('设置全局 User-Agent: ' + userAgent);
+  }
+  
   mainWindow = new BrowserWindow({
     width,
     height,
     title: 'Electron AudioStation',
     icon: path.join(__dirname, '../../assets/icon.png'),
-    autoHideMenuBar: !store.get('showMenu', false), // 根据设置控制菜单栏自动隐藏
+    autoHideMenuBar: !store.get('showMenu', false),
     webPreferences: {
       preload: path.join(__dirname, '../renderer/preload.js'),
       contextIsolation: true,
@@ -143,6 +372,12 @@ function createWindow() {
       spellcheck: false
     }
   });
+
+  // 确保窗口的 webContents 也使用正确的 User-Agent
+  if (userAgent) {
+    mainWindow.webContents.userAgent = userAgent;
+    mainWindow.webContents.session.setUserAgent(userAgent);
+  }
 
   // 加载URL
   const url = store.get('url');
@@ -564,116 +799,109 @@ function showSettings() {
         alwaysOnTop: store.get('alwaysOnTop'),
         theme: store.get('theme'),
         language: store.get('language'),
-        showMenu: store.get('showMenu')
+        showMenu: store.get('showMenu'),
+        userAgentType: store.get('userAgentType', 'chrome'),
+        customUserAgent: store.get('customUserAgent', '')
       };
     });
     
     // 处理保存设置
-    ipcMain.once('save-settings', (event, settings) => {
-      // 获取旧设置
-      const oldLanguage = store.get('language', 'system');
-      const oldUrl = store.get('url', '');
-      const oldShowMenu = store.get('showMenu', false);
+    ipcMain.on('save-settings', (event, settings) => {
+      log.info('收到保存设置请求:', settings);
       
-      // 保存设置
-      store.set('url', settings.url);
-      store.set('closeAction', settings.closeAction);
-      store.set('startMinimized', settings.startMinimized);
-      store.set('alwaysOnTop', settings.alwaysOnTop);
-      store.set('theme', settings.theme);
-      store.set('language', settings.language);
-      store.set('showMenu', settings.showMenu);
-      
-      // 应用设置
-      mainWindow.setAlwaysOnTop(settings.alwaysOnTop);
-      
-      // 如果菜单显示设置已更改
-      if (settings.showMenu !== oldShowMenu) {
-        if (settings.showMenu) {
-          // 创建菜单
-          createMenu(mainWindow, store);
-          mainWindow.setAutoHideMenuBar(false);
-        } else {
-          // 移除菜单
-          mainWindow.setMenu(null);
-          mainWindow.setAutoHideMenuBar(true);
-        }
-      }
-      
-      // 如果 URL 已更改，重新加载页面
-      let needReload = false;
-      if (settings.url !== oldUrl && settings.url) {
-        needReload = true;
-      }
-      
-      // 如果语言设置已更改
-      if (settings.language !== oldLanguage) {
-        // 重新创建菜单
-        createMenu(mainWindow, store);
-        
-        // 重新创建托盘菜单
-        if (tray) {
-          tray.destroy();
-          tray = null;
-          createTray();
-        }
-        
-        // 检测当前实际语言
-        const currentDetectedLanguage = i18n.detectLanguage();
-        const willChangeLanguage = 
-          (settings.language !== 'system' && settings.language !== currentDetectedLanguage) ||
-          (settings.language === 'system' && oldLanguage !== 'system');
-        
-        if (willChangeLanguage) {
-          // 根据当前语言选择提示文本
+      try {
+        // 使用通用的保存和重启检查方法
+        (async () => {
+          // 获取当前检测到的语言
+          const currentDetectedLanguage = i18n.detectLanguage();
           const isCurrentZhCN = currentDetectedLanguage.startsWith('zh');
           
-          // 关闭设置窗口
-          settingsWindow.close();
+          // 获取旧设置用于比较
+          const oldSettings = {};
+          RESTART_REQUIRED_SETTINGS.forEach(key => {
+            oldSettings[key] = store.get(key);
+          });
           
-          // 显示重启提示
-          dialog.showMessageBox({
-            type: 'info',
-            title: isCurrentZhCN ? '语言设置已更改' : 'Language Setting Changed',
-            message: isCurrentZhCN ? 
-              '语言设置已更改，某些界面元素可能需要重启应用才能完全应用新的语言设置。是否现在重启应用？' : 
-              'Language setting has been changed. Some UI elements may require restarting the application to fully apply the new language setting. Would you like to restart now?',
-            buttons: isCurrentZhCN ? 
-              ['立即重启', '稍后重启'] : 
-              ['Restart Now', 'Restart Later'],
-            defaultId: 0,
-            // 设置固定宽度，确保布局一致
-            width: 500,
-            // 确保按钮宽度一致
-            normalizeAccessKeys: true
-          }).then(result => {
-            if (result.response === 0) {
-              // 用户选择立即重启
-              app.relaunch();
-              isQuitting = true;
-              app.quit();
-            } else if (needReload) {
-              // 如果需要重新加载页面
-              mainWindow.loadURL(settings.url);
+          // 保存所有设置
+          Object.keys(settings).forEach(key => {
+            store.set(key, settings[key]);
+          });
+          
+          log.info('已保存设置');
+          
+          // 广播配置变更事件
+          broadcastConfigChanged(settings);
+          
+          // 检查是否有需要重启的设置被更改
+          const changedRestartSettings = {};
+          let needsRestart = false;
+          
+          RESTART_REQUIRED_SETTINGS.forEach(key => {
+            if (settings[key] !== oldSettings[key] && settings[key] !== undefined) {
+              changedRestartSettings[key] = settings[key];
+              needsRestart = true;
             }
           });
           
-          return; // 提前返回，避免执行下面的代码
-        }
+          log.info('是否需要重启:', needsRestart);
+          
+          // 应用不需要重启的设置
+          if (settings.alwaysOnTop !== undefined) {
+            mainWindow.setAlwaysOnTop(settings.alwaysOnTop);
+          }
+          
+          // 查找设置窗口
+          const settingsWindow = BrowserWindow.getAllWindows().find(win => 
+            win.getTitle() === (isCurrentZhCN ? '设置' : 'Settings'));
+          
+          if (needsRestart) {
+            // 关闭设置窗口
+            if (settingsWindow) {
+              settingsWindow.close();
+            }
+            
+            // 显示重启提示
+            dialog.showMessageBox({
+              type: 'info',
+              title: isCurrentZhCN ? '设置已更改' : 'Settings Changed',
+              message: isCurrentZhCN ? 
+                '某些设置已更改，需要重启应用才能完全应用。是否现在重启应用？' : 
+                'Some settings have been changed. The application needs to restart to fully apply the changes. Would you like to restart now?',
+              buttons: isCurrentZhCN ? 
+                ['立即重启', '稍后重启'] : 
+                ['Restart Now', 'Restart Later'],
+              defaultId: 0,
+              width: 500,
+              normalizeAccessKeys: true
+            }).then(dialogResult => {
+              if (dialogResult.response === 0) {
+                // 用户选择立即重启
+                log.info('用户选择立即重启');
+                restartApplication();
+              } else {
+                // 用户选择稍后重启，应用不需要重启的设置
+                log.info('用户选择稍后重启');
+                applySettingsWithoutRestart();
+              }
+            });
+          } else {
+            // 无需重启，直接应用设置
+            log.info('无需重启，直接应用设置');
+            await applySettingsWithoutRestart();
+            
+            // 关闭设置窗口
+            if (settingsWindow) {
+              settingsWindow.close();
+            }
+          }
+        })().catch(error => {
+          log.error('保存设置过程中出错:', error);
+          dialog.showErrorBox('设置错误', `保存设置过程中出错: ${error.message}`);
+        });
+      } catch (error) {
+        log.error('保存设置时出错:', error);
+        dialog.showErrorBox('设置错误', `保存设置时出错: ${error.message}`);
       }
-      
-      // 关闭设置窗口
-      settingsWindow.close();
-      
-      // 如果需要重新加载页面
-      if (needReload) {
-        mainWindow.loadURL(settings.url);
-      }
-      
-      // 移除所有相关的一次性事件监听器
-      ipcMain.removeHandler('get-settings');
-      ipcMain.removeAllListeners('save-settings');
-      ipcMain.removeAllListeners('cancel-settings');
     });
     
     // 处理取消
