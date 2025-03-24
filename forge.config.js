@@ -39,7 +39,6 @@ module.exports = {
     ignore: [
       /^\/\.git/,
       /^\/\.github/,
-      /^\/node_modules\/(?!.*\.(node|dll)$)/,
       /^\/out/
     ]
   },
