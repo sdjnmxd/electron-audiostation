@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Electron AudioStation
+Comment=A modern Synology AudioStation client
+Exec=electron-audiostation
+Icon=moe.mxd.Electron-AudioStation
+Terminal=false
+Type=Application
+Categories=Audio;Music;
+Keywords=music;audio;player;synology;
+StartupNotify=true
+StartupWMClass=Electron AudioStation 

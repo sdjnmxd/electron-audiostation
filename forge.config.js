@@ -78,6 +78,32 @@ module.exports = {
         icon: './assets/icon.icns',
         background: './assets/dmg-background.png'
       }
+    },
+    {
+      name: '@electron-forge/maker-snap',
+      config: {
+        features: {
+          audio: true,
+          mpris: 'com.electron.audiostation'
+        },
+        summary: 'A modern Synology AudioStation client',
+        description: 'A modern Synology AudioStation client for macOS, Windows and Linux.',
+        confinement: 'strict',
+        grade: 'stable',
+        categories: ['Audio', 'Music']
+      }
+    },
+    {
+      name: '@electron-forge/maker-flatpak',
+      config: {
+        options: {
+          categories: ['Audio', 'Music'],
+          mimeType: ['audio/mpeg', 'audio/flac', 'audio/wav'],
+          productName: 'Electron AudioStation',
+          id: 'moe.mxd.Electron-AudioStation',
+          icon: path.join(__dirname, 'assets', 'icon.png')
+        }
+      }
     }
   ],
   plugins: [

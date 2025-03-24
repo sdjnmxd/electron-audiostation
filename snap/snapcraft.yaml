@@ -1,0 +1,44 @@
+name: electron-audiostation
+version: '3.0.0'
+summary: A modern Synology AudioStation client
+description: |
+  Electron AudioStation is a modern client for Synology AudioStation, 
+  allowing you to enjoy your music collection stored on your Synology NAS 
+  from your desktop.
+
+grade: stable
+confinement: strict
+base: core22
+
+apps:
+  electron-audiostation:
+    command: electron-audiostation
+    extensions: [gnome]
+    plugs:
+      - network
+      - network-bind
+      - audio-playback
+      - pulseaudio
+      - home
+      - removable-media
+      - unity7
+      - wayland
+      - x11
+    desktop: usr/share/applications/moe.mxd.Electron-AudioStation.desktop
+    environment:
+      TMPDIR: $XDG_RUNTIME_DIR
+
+parts:
+  electron-audiostation:
+    plugin: npm
+    source: .
+    npm-node-version: '18.12.1'
+    build-packages:
+      - npm
+    override-build: |
+      npm ci
+      npm run make
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/share/applications
+      cp flatpak/moe.mxd.Electron-AudioStation.desktop $SNAPCRAFT_PART_INSTALL/usr/share/applications/
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/share/icons/hicolor/512x512/apps
+      cp assets/icon.png $SNAPCRAFT_PART_INSTALL/usr/share/icons/hicolor/512x512/apps/moe.mxd.Electron-AudioStation.png 

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>moe.mxd.Electron-AudioStation</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0</project_license>
+  <name>Electron AudioStation</name>
+  <summary>A modern Synology AudioStation client</summary>
+  <description>
+    <p>
+      Electron AudioStation is a modern client for Synology AudioStation, allowing you to enjoy your music collection stored on your Synology NAS from your desktop.
+    </p>
+    <p>
+      Features:
+    </p>
+    <ul>
+      <li>Browse and play your music library</li>
+      <li>Create and manage playlists</li>
+      <li>Modern and intuitive interface</li>
+      <li>Cross-platform support for macOS, Windows, and Linux</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">moe.mxd.Electron-AudioStation.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Main application window</caption>
+      <image>https://raw.githubusercontent.com/sdjnmxd/electron-audiostation/master/screenshots/main.png</image>
+    </screenshot>
+  </screenshots>
+  <url type="homepage">https://github.com/sdjnmxd/electron-audiostation</url>
+  <url type="bugtracker">https://github.com/sdjnmxd/electron-audiostation/issues</url>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="3.0.0" date="2023-01-01" />
+  </releases>
+  <developer_name>milkfish</developer_name>
+  <categories>
+    <category>Audio</category>
+    <category>Music</category>
+  </categories>
+</component> 
