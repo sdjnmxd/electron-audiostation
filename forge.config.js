@@ -79,35 +79,6 @@ module.exports = {
       }
     },
     {
-      name: '@electron-forge/maker-snap',
-      config: {
-        useDocker: true,
-        features: {
-          audio: true,
-          mpris: 'com.electron.audiostation'
-        },
-        summary: 'A modern Synology AudioStation client',
-        description: 'A modern Synology AudioStation client for macOS, Windows and Linux.',
-        confinement: 'strict',
-        grade: 'stable',
-        categories: ['Audio', 'Music'],
-        plugs: [
-          'desktop',
-          'desktop-legacy',
-          'home',
-          'x11',
-          'wayland',
-          'unity7',
-          'browser-support',
-          'network',
-          'gsettings',
-          'audio-playback',
-          'pulseaudio',
-          'opengl'
-        ]
-      }
-    },
-    {
       name: '@electron-forge/maker-flatpak',
       config: {
         options: {
