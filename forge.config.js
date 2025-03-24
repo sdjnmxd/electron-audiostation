@@ -81,6 +81,7 @@ module.exports = {
     {
       name: '@electron-forge/maker-snap',
       config: {
+        useDocker: true,
         features: {
           audio: true,
           mpris: 'com.electron.audiostation'
@@ -89,7 +90,21 @@ module.exports = {
         description: 'A modern Synology AudioStation client for macOS, Windows and Linux.',
         confinement: 'strict',
         grade: 'stable',
-        categories: ['Audio', 'Music']
+        categories: ['Audio', 'Music'],
+        plugs: [
+          'desktop',
+          'desktop-legacy',
+          'home',
+          'x11',
+          'wayland',
+          'unity7',
+          'browser-support',
+          'network',
+          'gsettings',
+          'audio-playback',
+          'pulseaudio',
+          'opengl'
+        ]
       }
     },
     {
@@ -100,7 +115,18 @@ module.exports = {
           mimeType: ['audio/mpeg', 'audio/flac', 'audio/wav'],
           productName: 'Electron AudioStation',
           id: 'moe.mxd.Electron-AudioStation',
-          icon: path.join(__dirname, 'assets', 'icon.png')
+          icon: path.join(__dirname, 'assets', 'icon.png'),
+          runtime: 'org.freedesktop.Platform',
+          runtimeVersion: '22.08',
+          sdk: 'org.freedesktop.Sdk',
+          finishArgs: [
+            '--socket=wayland',
+            '--socket=x11',
+            '--share=ipc',
+            '--share=network',
+            '--device=dri',
+            '--socket=pulseaudio'
+          ]
         }
       }
     }
