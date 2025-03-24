@@ -40,8 +40,7 @@ module.exports = {
       /^\/\.git/,
       /^\/\.github/,
       /^\/node_modules\/(?!.*\.(node|dll)$)/,
-      /^\/out/,
-      /^\/src\/(?!renderer)/
+      /^\/out/
     ]
   },
   rebuildConfig: {},
