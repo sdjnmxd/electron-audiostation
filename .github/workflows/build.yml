@@ -84,10 +84,11 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            artifacts/**/*.dmg
+            artifacts/**/*-*.dmg
             artifacts/**/*.exe
-            artifacts/**/*.zip
+            artifacts/**/*-*.zip
             artifacts/**/*.deb
             artifacts/**/*.rpm
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
