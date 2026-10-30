@@ -28,7 +28,7 @@
     "@electron-forge/maker-squirrel": "^7.2.0",
     "@electron-forge/plugin-auto-unpack-natives": "^7.2.0",
     "@electron-forge/publisher-github": "^7.2.0",
-    "electron": "^39.8.5",
+    "electron": "^39.8.10",
     "eslint": "^8.55.0",
     "eslint-plugin-import": "^2.29.0"
   },
@@ -36,7 +36,7 @@
     "electron-log": "^5.0.1",
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^8.1.0",
-    "electron-updater": "^6.1.4"
+    "electron-updater": "^6.8.9"
   },
   "electronDownload": {
     "mirror": "https://npmmirror.com/mirrors/electron/"
